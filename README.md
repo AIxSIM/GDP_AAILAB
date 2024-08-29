@@ -1,6 +1,6 @@
 # GDP_AAILAB
 
-This is the code that is being complemented in AAILAB in SyntheticData project.
+This is the code that is being complemented by AAILAB in SyntheticData project.
 
 ## Reference
 
