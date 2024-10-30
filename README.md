@@ -2,7 +2,7 @@
 
 This is the code complemented by AAILAB in SyntheticData project.
 
-### Directories
+## Directories
 ```
 .
 └── Graph-Diffusion-Planning/
@@ -41,7 +41,7 @@ This is the code complemented by AAILAB in SyntheticData project.
     └── train.sh
 ```
 
-### Data Preparation
+## Data Preparation
 Directories regarding data preparations are as follows: 
 ```bash
 sets_data/
@@ -58,7 +58,7 @@ Then, execute the code below for data preparation.
 python -m loader.preprocess.mm.process_all
 ```
 
-### Model Training
+## Model Training
 You can train the model by executing ``bash ./train.sh``.
 Then two commands are executed sequentially.
 (1) No plan generation 
@@ -77,5 +77,5 @@ Then two commands are executed sequentially.
 As a result, you can find the model at ``sets_models/`` and the evaluation results at ``sets_res/``. The result figure of planning is located in ``figs/``
 
 
-### Acknowledgements
+## Acknowledgements
 This work is heavily built upon the code from GRAPH-CONSTRAINED DIFFUSION FOR END-TO-END PATH PLANNING in [ICLR 2024](https://iclr.cc/virtual/2024/poster/17513). Our reference codes are available in [github](https://github.com/dingyuan-shi/Graph-Diffusion-Planning).
