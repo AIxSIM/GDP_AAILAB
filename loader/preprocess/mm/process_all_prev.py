@@ -6,11 +6,11 @@ if __name__ == "__main__":
     
     data_path = "./sets_data/"
     
-    # process real
-    city = "dj"
-    bounds = [127.317, 36.327, 127.371, 36.37]
+    # process real2
+    city = "jakarta"
+    bounds = [106.833, -6.21, 106.970, -6.091]
 
-    map_path = "./sets_data/real/map"
+    map_path = "./sets_data/real2/map"
 
     print("fetching map .... ")
     fetch_map(city, bounds, map_path)
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     map_con = build_map(city, map_path)
     print("finish!")
     
-    raw_path = "./sets_data/real/raw"
-    traj_path = "./sets_data/real/trajectories"
+    raw_path = "./sets_data/real2/raw"
+    traj_path = "./sets_data/real2/trajectories"
     process_gps_and_graph(city, map_path, data_path, raw_path, traj_path)
     
