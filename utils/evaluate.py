@@ -83,7 +83,7 @@ class Evaluator:
             path_coors.append([[self.dataset.G.nodes[v]["lat"], self.dataset.G.nodes[v]["lng"]] for v in path])
         return path_coors
 
-    def eval(self, planned_paths, orig_paths, suffix):
+    def eval(self, suffix):
         planned_paths_coors = self._convert_from_id_to_lat_lng(self.gen_paths)
         draw_gps(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * 10, no_points=False)
         orig_paths_coors = self._convert_from_id_to_lat_lng(self.real_paths)
