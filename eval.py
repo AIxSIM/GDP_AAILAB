@@ -45,6 +45,7 @@ if __name__ == "__main__":
         torch.save(gen_paths, join(args.model_path, "gen_paths.pth"))
         evaluator = Evaluator(real_paths, gen_paths, model, n_vertex,
                               name=join(args.res_path, f"{args.model_name}_pure_gen"))
+        evaluator.eval(suffix=args.d_name)
         res = evaluator.eval_all()
         print(res)
         with open(join(args.res_path, f"{args.model_name}.res"), "w") as f:
