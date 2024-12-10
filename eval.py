@@ -33,6 +33,7 @@ if __name__ == "__main__":
     if args.method != "plan":
         model = torch.load(join(args.model_path, f"{args.model_name}.pth"), map_location=device)
         model.device = device
+        model.eps_model.device = device
         model.eval()
 
         gen_paths = model.sample(args.eval_num)
