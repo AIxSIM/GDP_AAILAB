@@ -110,7 +110,8 @@ class TrajFastDataset(Dataset):
                     points_filtered.pop()
         return points_filtered
     
-    def get_real_paths(self, num=500): ## org : num=500
-        choices = np.random.choice(a=self.total_len, size=num, replace=False).tolist() # org : replace = False / 비복원추출
+    def get_real_paths(self, num=30): ## org : num=500
+        print(self.total_len)
+        choices = np.random.choice(a=self.total_len, size=self.total_len-1, replace=False).tolist() # org : size=num
         return [self.__getitem__(c) for c in choices]
     
