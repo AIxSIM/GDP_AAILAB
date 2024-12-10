@@ -33,6 +33,15 @@ if __name__ == "__main__":
     if args.method != "plan":
         from models_seq.seq_models import Destroyer, Restorer
         from models_seq.eps_models import EPSM
+        suffix = "dj" if args.d_name == "dj" else "dj"
+
+        betas = torch.linspace(args.beta_lb, args.beta_ub, args.max_T)
+        destroyer = Destroyer(dataset.A, betas, args.max_T, device)
+        pretrain_path = join(args.path, f"{args.d_name}_node2vec.pkl")
+        dims = eval(args.dims)
+        eps_model = EPSM(dataset.n_vertex, x_emb_dim=args.x_emb_dim, dims=dims, device=device,
+                         hidden_dim=args.hidden_dim, pretrain_path=pretrain_path)
+        model = Restorer(eps_model, destroyer, device)
 
         model = torch.load(join(args.model_path, f"{args.model_name}.pth"))
         model.eval()
