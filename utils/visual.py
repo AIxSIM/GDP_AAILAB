@@ -63,6 +63,6 @@ def draw_heatmap(locations_series, html_path, colors=None, no_points=False):
 
     for path, count in path_counts.items():
         color = "red" if colors is None else colors[0]
-        folium.PolyLine(path, weight=count/10, color=color, opacity=0.7).add_to(m)
+        folium.PolyLine(path, weight=count/5, color=color, opacity=0.7).add_to(m)
     m.save(html_path)
     
