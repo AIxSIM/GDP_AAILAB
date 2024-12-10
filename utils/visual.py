@@ -37,4 +37,27 @@ def draw_paths(paths, G, html_path: str, colors=None, no_points=False):
         locs = [[G.nodes[v]["lat"], G.nodes[v]["lng"]] for v in path]
         multiple_locs.append(locs)
     draw_gps(multiple_locs, html_path=html_path, colors=colors, no_points=no_points)
+
+
+def draw_heatmap(locations_series, html_path, colors=None, no_points=False):
+    if type(locations_series[0]) is tuple:
+        locations_series = [locations_series]
+
+    # calculate center
+    cen_lng, cen_lat, cnt = 0, 0, 0
+    for series in locations_series:
+        cnt += len(series)
+        for y, x in series:
+            cen_lat += y
+            cen_lng += x
+
+    m = folium.Map([cen_lat / cnt, cen_lng / cnt], zoom_start=13, attr='default',
+                   tiles='https://tile.openstreetmap.org/{z}/{x}/{y}.png')
+
+    import pdb
+    pdb.set_trace()
+    for k, locations in enumerate(locations_series):
+        color = "red" if colors is None else colors[k]
+        folium.PolyLine(locations, weight=5, color=color, opacity=0.7).add_to(m)
+    m.save(html_path)
     
