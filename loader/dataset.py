@@ -21,7 +21,7 @@ class TrajFastDataset(Dataset):
         if exists(shrink_G_path):
             print("loading")
             # self.G = pickle.load(open(shrink_G_path, "rb"))
-            self.G = torch.load(open(shrink_G_path, "rb"), map_location=torch.device("cpu"))
+            self.G = torch.load(io.BytesIO(open(shrink_G_path, "rb")), map_location=torch.device("cpu"))
             self.A = pickle.load(open(shrink_A_path, "rb"))
             self.shrink_nonzero_dict = pickle.load(open(shrink_NZ_path, "rb"))
             print("finished")
