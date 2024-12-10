@@ -31,8 +31,7 @@ if __name__ == "__main__":
         print(f"vertex: {n_vertex}")
 
     if args.method != "plan":
-        model = torch.load(join(args.model_path, f"{args.model_name}.pth"))
-        model = model.to(device)
+        model = torch.load(join(args.model_path, f"{args.model_name}.pth"), map_location=device)
         model.eval()
 
         gen_paths = model.sample(args.eval_num)
