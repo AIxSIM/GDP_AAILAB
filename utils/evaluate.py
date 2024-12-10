@@ -2,6 +2,7 @@ from typing import Any
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
+from utils.visual import draw_gps
 
 class Evaluator:
     def __init__(self, real_paths, gen_paths, model, n_vertex, name="e1") -> None:
@@ -75,3 +76,15 @@ class Evaluator:
         div_dict = self.calculate_divergences()
         nll_dict = self.calculate_nll()
         return dict(div_dict, **nll_dict)
+
+    def _convert_from_id_to_lat_lng(self, paths):
+        path_coors = []
+        for path in paths:
+            path_coors.append([[self.dataset.G.nodes[v]["lat"], self.dataset.G.nodes[v]["lng"]] for v in path])
+        return path_coors
+
+    def eval(self, planned_paths, orig_paths, suffix):
+        planned_paths_coors = self._convert_from_id_to_lat_lng(self.gen_paths)
+        draw_gps(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * 10, no_points=False)
+        orig_paths_coors = self._convert_from_id_to_lat_lng(self.real_paths)
+        draw_gps(orig_paths_coors, f"./figs/seq_real_{suffix}.html", colors=["blue"] * 10, no_points=False)

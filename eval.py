@@ -34,13 +34,13 @@ if __name__ == "__main__":
         model = torch.load(join(args.model_path, f"{args.model_name}.pth"), map_location=device)
         model.device = device
         model.eps_model.device = device
+        # TODO: need to change device for all modules in model
         model.eval()
 
+        # gen_paths: list of lists (len: eval_num, element: list of nodes)
+        # real_paths: list of lists (len: eval_num, element: list of nodes)
         gen_paths = model.sample(args.eval_num)
         real_paths = dataset.get_real_paths(args.eval_num)
-
-        import pdb
-        pdb.set_trace()
 
         torch.save(gen_paths, join(args.model_path, "gen_paths.pth"))
         evaluator = Evaluator(real_paths, gen_paths, model, n_vertex,
