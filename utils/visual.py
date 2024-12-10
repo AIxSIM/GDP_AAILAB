@@ -60,11 +60,9 @@ def draw_heatmap(locations_series, html_path, colors=None, no_points=False):
             path = tuple(map(tuple, [series[i], series[i+1]]))
             path_counts[path] += 1
     path_counts = dict(path_counts)
-    for path, count in path_counts.items():
-        print(f"Path {path} is traversed {count} times.")
 
-    for k, locations in enumerate(locations_series):
-        color = "red" if colors is None else colors[k]
-        folium.PolyLine(locations, weight=5, color=color, opacity=0.7).add_to(m)
+    for path, count in path_counts.items():
+        color = "red" if colors is None else colors[0]
+        folium.PolyLine(path, weight=count, color=color, opacity=0.7).add_to(m)
     m.save(html_path)
     
