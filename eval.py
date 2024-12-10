@@ -33,8 +33,6 @@ if __name__ == "__main__":
     if args.method != "plan":
         from models_seq.seq_models import Destroyer, Restorer
         from models_seq.eps_models import EPSM
-        import pdb
-        pdb.set_trace()
 
         model = torch.load(join(args.model_path, f"{args.model_name}.pth"))
         model.eval()
