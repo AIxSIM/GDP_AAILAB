@@ -8,6 +8,12 @@ import networkx as nx
 from loader.node2vec import get_node2vec
 import io
 
+class CPU_Unpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module == 'torch.storage' and name == '_load_from_bytes':
+            return lambda b: torch.load(io.BytesIO(b), map_location='cpu')
+        else: return super().find_class(module, name)
+
 class TrajFastDataset(Dataset):
     def __init__(self, city, dates, path, device, is_pretrain):
         super().__init__()
@@ -21,9 +27,11 @@ class TrajFastDataset(Dataset):
         if exists(shrink_G_path):
             print("loading")
             # self.G = pickle.load(open(shrink_G_path, "rb"))
-            self.G = torch.load(io.BytesIO(open(shrink_G_path, "rb")), map_location=torch.device("cpu"))
-            self.A = pickle.load(open(shrink_A_path, "rb"))
-            self.shrink_nonzero_dict = pickle.load(open(shrink_NZ_path, "rb"))
+            # self.A = pickle.load(open(shrink_A_path, "rb"))
+            # self.shrink_nonzero_dict = pickle.load(open(shrink_NZ_path, "rb"))
+            self.G = CPU_Unpickler(open(shrink_G_path, "rb")).load()
+            self.A = CPU_Unpickler(open(shrink_A_path, "rb")).load()
+            self.shrink_nonzero_dict = CPU_Unpickler(open(shrink_NZ_path, "rb")).load()
             print("finished")
         else:
             self.G = pickle.load(open(join(path, f"{name}_G.pkl"), "rb"))
