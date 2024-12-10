@@ -6,6 +6,7 @@ def get_argparser() -> argparse.ArgumentParser:
     
     # device config
     parser.add_argument("-device", type=str, help="device, [cpu, cuda]", default="default")
+    parser.add_argument("-gpu", type=int, help="gpu no", default=0)
     
     # path config 
     parser.add_argument("-path", type=str, help="data path", default="./sets_data")
