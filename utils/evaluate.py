@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 from utils.visual import draw_gps
 
 class Evaluator:
-    def __init__(self, real_paths, gen_paths, model, n_vertex, name="e1") -> None:
+    def __init__(self, real_paths, gen_paths, model, n_vertex, dataset, name="e1") -> None:
         self.real_paths = real_paths
         self.gen_paths = gen_paths
         self.n_vertex = n_vertex
         self.model = model
         self.name = name
+        self.dataset = dataset
         
     @staticmethod
     def JS_divergence(p, q):
