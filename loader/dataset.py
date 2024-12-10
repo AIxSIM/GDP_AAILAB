@@ -6,7 +6,7 @@ import torch
 import numpy as np
 import networkx as nx
 from loader.node2vec import get_node2vec
-
+import io
 
 class TrajFastDataset(Dataset):
     def __init__(self, city, dates, path, device, is_pretrain):
@@ -20,7 +20,8 @@ class TrajFastDataset(Dataset):
         
         if exists(shrink_G_path):
             print("loading")
-            self.G = pickle.load(open(shrink_G_path, "rb"))
+            # self.G = pickle.load(open(shrink_G_path, "rb"))
+            self.G = torch.load(open(shrink_G_path, "rb"), map_location=torch.device("cpu"))
             self.A = pickle.load(open(shrink_A_path, "rb"))
             self.shrink_nonzero_dict = pickle.load(open(shrink_NZ_path, "rb"))
             print("finished")
