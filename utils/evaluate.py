@@ -86,6 +86,6 @@ class Evaluator:
 
     def eval(self, suffix):
         planned_paths_coors = self._convert_from_id_to_lat_lng(self.gen_paths)
-        draw_gps(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * 10, no_points=False)
+        draw_gps(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * len(planned_paths_coors), no_points=False)
         orig_paths_coors = self._convert_from_id_to_lat_lng(self.real_paths)
-        draw_gps(orig_paths_coors, f"./figs/seq_real_{suffix}.html", colors=["blue"] * 10, no_points=False)
+        draw_gps(orig_paths_coors, f"./figs/seq_real_{suffix}.html", colors=["blue"] * len(orig_paths_coors), no_points=False)
