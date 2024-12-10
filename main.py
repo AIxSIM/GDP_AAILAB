@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     # set device
     if args.device == "default":
-        device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
+        device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
     else:
         device = torch.device(args.device)
     print(device)
