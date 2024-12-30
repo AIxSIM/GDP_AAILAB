@@ -117,7 +117,10 @@ def process_gps_and_graph(city, map_path, data_path, raw_path, traj_path):
     G.add_nodes_from(node_attrs)
     G.add_edges_from([(a, b) for a, _, b, _ in map_con.all_edges()])
     n = G.number_of_nodes()
-    A = torch.zeros([n, n], dtype=torch.float64)
+    # print("How big ???? ")
+    # print(n)
+    # print(G.number_of_edges())
+    A = torch.zeros([n, n], dtype=torch.int8)
     for a, b in G.edges:
         A[a, b] = 1.
         A[b, a] = 1.
