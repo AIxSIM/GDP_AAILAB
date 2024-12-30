@@ -34,7 +34,7 @@ def build_map_from_road_data(city: str, map_path: str, road_path: str, add_rever
     xml_file_node = join(road_path, "node.xml")
     df_node = parse_nodes_to_dataframe(xml_file_node, ".//node")
 
-    xml_file_edge = "edge.xml"
+    xml_file_edge = join(road_path, "edge.xml")
     df_edge = parse_nodes_to_dataframe(xml_file_edge, ".//edge")
 
     plt.clf()
