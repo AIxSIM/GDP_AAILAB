@@ -46,6 +46,7 @@ class Destroyer:
         # x_diffused: list of diffused labels in tensor
         # print(xs)
         lengths = [x.shape[0] for x in xs]
+        print(lengths)
         batch_size, horizon = len(lengths), max(lengths)
         if type(xs) is torch.Tensor and xs.dim() == 3:
             xs = rearrange(xs, "b h c -> c (b h)").to(self.device)
