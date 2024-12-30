@@ -2,14 +2,16 @@ from typing import Any
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
+from utils.visual import draw_heatmap
 
 class Evaluator:
-    def __init__(self, real_paths, gen_paths, model, n_vertex, name="e1") -> None:
+    def __init__(self, real_paths, gen_paths, model, n_vertex, dataset, name="e1") -> None:
         self.real_paths = real_paths
         self.gen_paths = gen_paths
         self.n_vertex = n_vertex
         self.model = model
         self.name = name
+        self.dataset = dataset
         
     @staticmethod
     def JS_divergence(p, q):
@@ -75,3 +77,15 @@ class Evaluator:
         div_dict = self.calculate_divergences()
         nll_dict = self.calculate_nll()
         return dict(div_dict, **nll_dict)
+
+    def _convert_from_id_to_lat_lng(self, paths):
+        path_coors = []
+        for path in paths:
+            path_coors.append([[self.dataset.G.nodes[v]["lat"], self.dataset.G.nodes[v]["lng"]] for v in path])
+        return path_coors
+
+    def eval(self, suffix):
+        planned_paths_coors = self._convert_from_id_to_lat_lng(self.gen_paths)
+        draw_heatmap(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * len(planned_paths_coors), no_points=False)
+        orig_paths_coors = self._convert_from_id_to_lat_lng(self.real_paths)
+        draw_heatmap(orig_paths_coors, f"./figs/seq_real_{suffix}.html", colors=["blue"] * len(orig_paths_coors), no_points=False)

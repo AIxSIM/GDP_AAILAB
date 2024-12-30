@@ -6,7 +6,7 @@ from loader.dataset import TrajFastDataset
 from models_seq.seq_models import Restorer
 from utils.coors import wgs84_to_gcj02
 import folium
-
+from collections import defaultdict
 
 def draw_gps(locations_series, html_path, colors=None, no_points=False):
     if type(locations_series[0]) is tuple:
@@ -37,4 +37,32 @@ def draw_paths(paths, G, html_path: str, colors=None, no_points=False):
         locs = [[G.nodes[v]["lat"], G.nodes[v]["lng"]] for v in path]
         multiple_locs.append(locs)
     draw_gps(multiple_locs, html_path=html_path, colors=colors, no_points=no_points)
+
+
+def draw_heatmap(locations_series, html_path, colors=None, no_points=False):
+    if type(locations_series[0]) is tuple:
+        locations_series = [locations_series]
+
+    # calculate center
+    cen_lng, cen_lat, cnt = 0, 0, 0
+    for series in locations_series:
+        cnt += len(series)
+        for y, x in series:
+            cen_lat += y
+            cen_lng += x
+
+    m = folium.Map([cen_lat / cnt, cen_lng / cnt], zoom_start=13, attr='default',
+                   tiles='https://tile.openstreetmap.org/{z}/{x}/{y}.png')
+
+    path_counts = defaultdict(int)
+    for series in locations_series:
+        for i in range(len(series) - 1):
+            path = tuple(map(tuple, [series[i], series[i+1]]))
+            path_counts[path] += 1
+    path_counts = dict(path_counts)
+
+    for path, count in path_counts.items():
+        color = "red" if colors is None else colors[0]
+        folium.PolyLine(path, weight=count/5, color=color, opacity=0.7).add_to(m)
+    m.save(html_path)
     
