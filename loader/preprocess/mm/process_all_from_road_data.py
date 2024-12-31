@@ -1,5 +1,5 @@
-from loader.preprocess.mm.build_from_road_data import fetch_map, build_map_from_road_data
-from loader.preprocess.mm.mapmatching import process_gps_and_graph
+from build_from_road_data import fetch_map, build_map_from_road_data
+from mapmatching import process_gps_and_graph
 
 
 if __name__ == "__main__":
