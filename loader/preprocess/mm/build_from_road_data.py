@@ -75,6 +75,7 @@ def build_map_from_road_data(city: str, map_path: str, road_path: str, add_rever
             cmpct_to_nid.append(node_id_2)
         cid1 = nid_to_cmpct[node_id_1]
         cid2 = nid_to_cmpct[node_id_2]
+        print(cid1, cid2)
         map_con.add_edge(cid1, cid2)
         if add_reverse:
             map_con.add_edge(cid2, cid1)
