@@ -57,7 +57,7 @@ def build_map_from_road_data(city: str, map_path: str, road_path: str, add_rever
             nid_to_cmpct[node_id] = len(cmpct_to_nid)
             cmpct_to_nid.append(node_id)
         cid = nid_to_cmpct[node_id]
-        map_con.add_node(cid, (row['y'], row['x']))
+        map_con.add_node(cid, (float(row['y']), float(row['x'])))
 
     for index, row in df_edge.iterrows():
         # edge_id = row['id']
