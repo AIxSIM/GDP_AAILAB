@@ -49,18 +49,23 @@ def build_map_from_road_data(city: str, map_path: str, road_path: str, add_rever
     nid_to_cmpct = dict()
     cmpct_to_nid = []
     for index, row in df_node.iterrows():
-        node_id = row['id']
+        try:
+            node_id = int(row['id'])
+        except:
+            continue
         if node_id not in nid_to_cmpct:
             nid_to_cmpct[node_id] = len(cmpct_to_nid)
             cmpct_to_nid.append(node_id)
         cid = nid_to_cmpct[node_id]
         map_con.add_node(cid, (row['y'], row['x']))
-    import pdb
-    pdb.set_trace()
+
     for index, row in df_edge.iterrows():
         # edge_id = row['id']
-        node_id_1 = row['from']
-        node_id_2 = row['to']
+        try:
+            node_id_1 = int(row['from'])
+            node_id_2 = int(row['to'])
+        except:
+            continue
 
         if node_id_1 not in nid_to_cmpct:
             nid_to_cmpct[node_id_1] = len(cmpct_to_nid)
