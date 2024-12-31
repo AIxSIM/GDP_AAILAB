@@ -10,7 +10,7 @@ if __name__ == "__main__":
     city = "djr"
     bounds = [127.317, 36.327, 127.371, 36.37]
 
-    prefix = "/home/aailab/data4/wp03052/GDP_AAILAB/real_from_road_data"
+    prefix = "/home/aailab/data4/wp03052/GDP_AAILAB/sets_data/real_from_road_data"
     map_path = f"{prefix}/map"
     road_path = "/home/aailab/data4/wp03052/synthesis/Daejeon-Network"
 
