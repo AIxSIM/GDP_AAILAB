@@ -77,7 +77,7 @@ def build_map_from_road_data(city: str, map_path: str, road_path: str, add_rever
 
 
 if __name__ == "__main__":
-    city = "dj"
+    city = "djr"
     bounds = [127.317, 36.327, 127.371, 36.37]
     map_path = "./sets_data/real_from_road_data/map"
     road_path = "/home/aailab/data4/wp03052/synthesis/Daejeon-Network"
