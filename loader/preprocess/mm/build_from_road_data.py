@@ -76,6 +76,8 @@ def build_map_from_road_data(city: str, map_path: str, road_path: str, add_rever
         cid1 = nid_to_cmpct[node_id_1]
         cid2 = nid_to_cmpct[node_id_2]
         print(cid1, cid2)
+        import pdb
+        pdb.set_trace()
         map_con.add_edge(cid1, cid2)
         if add_reverse:
             map_con.add_edge(cid2, cid1)
