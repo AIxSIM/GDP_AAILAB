@@ -153,6 +153,9 @@ class Restorer(nn.Module):
             xt = xt.to(self.device)
         with torch.no_grad():
             for t in range(T, 0, -1):
+                if t == 5:
+                    import pdb
+                    pdb.set_trace()
                 ts = torch.Tensor([t]).long().to(self.device).repeat(n_samples)
                 x0_pred_logits = self.restore(xt, lengths, ts) 
                 x0_pred_probs = F.softmax(x0_pred_logits, dim=-1)  

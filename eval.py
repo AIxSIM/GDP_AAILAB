@@ -39,8 +39,6 @@ if __name__ == "__main__":
 
         # gen_paths: list of lists (len: eval_num, element: list of nodes)
         # real_paths: list of lists (len: eval_num, element: list of nodes)
-        import pdb
-        pdb.set_trace()
         gen_paths = model.sample(args.eval_num)
         real_paths = dataset.get_real_paths(args.eval_num)
 
