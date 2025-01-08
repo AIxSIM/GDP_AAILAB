@@ -25,7 +25,7 @@ if __name__ == "__main__":
         name = f"v{args.n_vertex}_p{args.n_path}_{args.min_len}{args.max_len}"
         dataset = DataGenerator(args.n_vertex, args.n_path, args.min_len, args.max_len, device, args.path, name)
     elif args.d_name != "":
-        date = "20190701" if args.d_name == "dj" else "dj"
+        date = "20190701" if "dj" in args.d_name else "dj"
         dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
         n_vertex = dataset.n_vertex
         print(f"vertex: {n_vertex}")
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         from models_seq.eps_models import EPSM
         from models_seq.trainer import Trainer
 
-        suffix = "dj" if args.d_name == "dj" else "dj"
+        suffix = args.d_name
 
         betas = torch.linspace(args.beta_lb, args.beta_ub, args.max_T)
         destroyer = Destroyer(dataset.A, betas, args.max_T, device)
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         from planner.planner import Planner
         from planner.trainer import Trainer
 
-        suffix = "dj" if args.d_name == "dj" else "dj"
+        suffix = args.d_name
 
         pretrain_path = join(args.path, f"{args.d_name}_node2vec.pkl")
         restorer = torch.load(f"./sets_model/no_plan_gen_{suffix}.pth")
@@ -88,6 +88,6 @@ if __name__ == "__main__":
     if args.method == "plan":
         from utils.evaluate_plan import Evaluator
 
-        suffix = "dj" if args.d_name == "dj" else "dj"
+        suffix = args.d_name
         evaluator = Evaluator(model, dataset)
         evaluator.eval(args.eval_num, suffix)

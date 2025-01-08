@@ -25,7 +25,7 @@ if __name__ == "__main__":
         name = f"v{args.n_vertex}_p{args.n_path}_{args.min_len}{args.max_len}"
         dataset = DataGenerator(args.n_vertex, args.n_path, args.min_len, args.max_len, device, args.path, name)
     elif args.d_name != "":
-        date = "20190701" if args.d_name == "dj" else "dj"
+        date = "20190701" if "dj" in args.d_name else "dj"
         dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
         n_vertex = dataset.n_vertex
         print(f"vertex: {n_vertex}")
