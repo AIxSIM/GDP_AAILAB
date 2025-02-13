@@ -102,6 +102,7 @@ class Restorer(nn.Module):
         # true_probs_unorm = Q_t @ x_t * \bar{E}_{t-1} @ x_0 both x_0 and x_t is categorical
         EtXt = self.Q[ts_padded.view(-1,).to(self.device), :, xt_padded.view(-1).to(self.device)]
         true_probs_unorm = EtXt * self.matrices[ts_padded.view(-1,) - 1, :, xs_padded.view(-1)].to(self.device)
+        true_probs_unorm[true_probs_unorm < 1e-10] = 0
         true_probs = true_probs_unorm / true_probs_unorm.sum(1, keepdim=True)
         true_probs = rearrange(true_probs, "(b h) c -> b h c", h=horizon)
         
@@ -115,7 +116,7 @@ class Restorer(nn.Module):
         pred_logits = probs_to_logits(pred_probs)
         pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
         eps = 0.000001
-        kl_loss = sum([F.kl_div(pred_logits[k][:l] + eps, true_probs[k][:l] + eps, reduction="batchmean") for k, l in enumerate(lengths)])
+        kl_loss = sum([F.kl_div(pred_logits[k][:l] + eps, true_probs[k][:l], reduction="batchmean") for k, l in enumerate(lengths)])
         ce_loss = sum([F.cross_entropy(x0_pred_logits[k][:lengths[k]].to(x) + eps, x[:lengths[k]].long(), reduction="mean") for k, x in enumerate(xs)])
         con_loss = -sum([((self.A @ (x0_pred_probs[k, 1:l, :] + eps).log().T).T * x0_pred_probs[k, :l-1, :]).mean() for k, l in enumerate(lengths)]) / batch_size
         con_loss += -sum([((self.A @ (x0_pred_probs[k, :l-1, :] + eps).log().T).T * x0_pred_probs[k, 1:l, :]).mean() for k, l in enumerate(lengths)]) / batch_size
