@@ -85,6 +85,9 @@ class Restorer(nn.Module):
     def forward(self, xs):
         # xs: list of tensors of labels
         batch_size = len(xs)
+        if batch_size == 0:
+            import pdb
+            pdb.set_trace()
         lengths = torch.Tensor([x.shape[0] for x in xs]).long().to(self.device)
         
         # uniformly choose t
@@ -112,11 +115,22 @@ class Restorer(nn.Module):
         pred_logits = probs_to_logits(pred_probs)
         pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
         eps = 0.000001
-        eps_2 = 1e-20
-        kl_loss = sum([F.kl_div(pred_logits[k][:l] + eps, true_probs[k][:l] + eps_2, reduction="batchmean") for k, l in enumerate(lengths)])
+        kl_loss = sum([F.kl_div(pred_logits[k][:l] + eps, true_probs[k][:l] + eps, reduction="batchmean") for k, l in enumerate(lengths)])
         ce_loss = sum([F.cross_entropy(x0_pred_logits[k][:lengths[k]].to(x) + eps, x[:lengths[k]].long(), reduction="mean") for k, x in enumerate(xs)])
         con_loss = -sum([((self.A @ (x0_pred_probs[k, 1:l, :] + eps).log().T).T * x0_pred_probs[k, :l-1, :]).mean() for k, l in enumerate(lengths)]) / batch_size
         con_loss += -sum([((self.A @ (x0_pred_probs[k, :l-1, :] + eps).log().T).T * x0_pred_probs[k, 1:l, :]).mean() for k, l in enumerate(lengths)]) / batch_size
+        if torch.isnan(kl_loss):
+            print('kl_loss nan')
+            import pdb
+            pdb.set_trace()
+        if torch.isnan(ce_loss):
+            print('ce_loss nan')
+            import pdb
+            pdb.set_trace()
+        if torch.isnan(con_loss):
+            print('con_loss nan')
+            import pdb
+            pdb.set_trace()
         return kl_loss, ce_loss, con_loss * 100
          
     def restore(self, xt_padded, lengths=None, ts=None):
