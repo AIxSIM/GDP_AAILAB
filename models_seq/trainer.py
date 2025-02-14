@@ -23,6 +23,7 @@ class Trainer:
         self.model_path = model_path
         
     def train(self, n_epoch, batch_size, lr):
+        torch.autograd.set_detect_anomaly(True)
         optimizer = torch.optim.Adam(self.model.parameters(), lr)
         # split train test
         train_num = int(0.8 * len(self.dataset))
