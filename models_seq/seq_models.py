@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from einops import rearrange
 from models_seq.eps_models import EPSM
-from torch.distributions.utils import probs_to_logits
+from torch.distributions.utils import probs_to_logits, clamp_probs
 from collections import defaultdict
 import numpy as np
 
@@ -102,8 +102,8 @@ class Restorer(nn.Module):
         # true_probs_unorm = Q_t @ x_t * \bar{E}_{t-1} @ x_0 both x_0 and x_t is categorical
         EtXt = self.Q[ts_padded.view(-1,).to(self.device), :, xt_padded.view(-1).to(self.device)]
         true_probs_unorm = EtXt * self.matrices[ts_padded.view(-1,) - 1, :, xs_padded.view(-1)].to(self.device)
-        true_probs_unorm[true_probs_unorm < 1e-10] = 0
         true_probs = true_probs_unorm / true_probs_unorm.sum(1, keepdim=True)
+        true_probs = clamp_probs(true_probs)
         true_probs = rearrange(true_probs, "(b h) c -> b h c", h=horizon)
         
         x0_pred_logits = self.restore(xt_padded.to(self.model_device), lengths.to(self.model_device), ts.to(self.model_device))
