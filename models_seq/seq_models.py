@@ -120,8 +120,8 @@ class Restorer(nn.Module):
         # ce_loss = sum([F.cross_entropy(x0_pred_logits[k][:lengths[k]].to(x) + eps, x[:lengths[k]].long(), reduction="mean") for k, x in enumerate(xs)])
         # con_loss = -sum([((self.A @ (x0_pred_probs[k, 1:l, :] + eps).log().T).T * x0_pred_probs[k, :l-1, :]).mean() for k, l in enumerate(lengths)]) / batch_size
         # con_loss += -sum([((self.A @ (x0_pred_probs[k, :l-1, :] + eps).log().T).T * x0_pred_probs[k, 1:l, :]).mean() for k, l in enumerate(lengths)]) / batch_size
-        ce_loss = 0.
-        con_loss = 0.
+        ce_loss = torch.zeros_like(kl_loss)
+        con_loss = torch.zeros_like(kl_loss)
         if torch.isnan(kl_loss):
             print('kl_loss nan')
             import pdb
