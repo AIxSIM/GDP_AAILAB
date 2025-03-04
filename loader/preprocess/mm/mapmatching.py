@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import torch
-
+import datetime
 plt.switch_backend("agg")
 from refine_gps import get_trajectories
 from leuvenmapmatching.matcher.distance import DistanceMatcher
@@ -106,6 +106,18 @@ def get_matched_path(date, city, traj_path, map_path, raw_path):
     print("write complete!")
     return trajectories_mapped
 
+def unix_to_hour(unix_time: int) -> int:
+    """
+    Convert a Unix timestamp to an hour in the range 0-23.
+
+    Args:
+        unix_time (int): Unix timestamp (seconds since January 1, 1970).
+    
+    Returns:
+        int: Hour of the day (0-23).
+    """
+    dt = datetime.datetime.utcfromtimestamp(unix_time)
+    return dt.hour
 
 def process_gps_and_graph(city, map_path, data_path, raw_path, traj_path):
     name = city
@@ -139,12 +151,14 @@ def process_gps_and_graph(city, map_path, data_path, raw_path, traj_path):
             # shrink
             # print(trajectories_mapped)
             print("length of trajectory mapped : ", len(trajectories_mapped))
-            state_lengths, states = [], []
+            state_lengths, states , sim_times= [], [], []
 
             for link_points, states_shrinked, states_to_point, states_non_loop in trajectories_mapped:
+                sim_time = unix_to_hour(int(states_to_point[0][0][0]))
+                sim_times.append(sim_time)
                 state_lengths.append(len(states_non_loop))
                 states.extend(states_non_loop)
-
+                
             # calcluate prefix sum
             state_prefix = np.zeros(shape=len(state_lengths) + 1, dtype=np.int64)
             for k, L in enumerate(state_lengths):
@@ -154,21 +168,23 @@ def process_gps_and_graph(city, map_path, data_path, raw_path, traj_path):
             # pad all in one
             f[date].create_dataset("state_prefix", data=np.array(state_prefix))
             f[date].create_dataset("states", data=np.array(states))
+            f[date].create_dataset("sim_times", data=np.array(sim_times))
 
     # calculate V
     target_v_path = join(data_path, f"{name}_v_paths.csv")
     vs = []
     for gps_file in gps_file_list[:1]:
         date = gps_file[4:]
+        print(date)
         trajectories_mapped = get_matched_path(date, city, traj_path, map_path, raw_path)
         # (link_points, states_shrinked, states_to_point, states_non_loop)
         # print(trajectories_mapped)
         non_loops = [each[-1] for each in trajectories_mapped]
-        print("non loops : ", non_loops)
+        # print("non loops : ", non_loops)
         n_samples = len(non_loops)
         v_np = np.zeros([n_samples, n])
         for k, non_loop in enumerate(non_loops):
-            print(k, non_loop)
+            # print(k, non_loop)
             v_np[k, non_loop] = 1.
             v_np[k, non_loop[0]] = 2.
         vs.append(v_np)

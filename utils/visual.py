@@ -7,6 +7,7 @@ from models_seq.seq_models import Restorer
 from utils.coors import wgs84_to_gcj02
 import folium
 from collections import defaultdict
+import os
 
 def draw_gps(locations_series, html_path, colors=None, no_points=False):
     if type(locations_series[0]) is tuple:
@@ -64,5 +65,7 @@ def draw_heatmap(locations_series, html_path, colors=None, no_points=False):
     for path, count in path_counts.items():
         color = "red" if colors is None else colors[0]
         folium.PolyLine(path, weight=count/5, color=color, opacity=0.7).add_to(m)
+    if not os.path.exists(html_path):
+        os.makedirs(os.path.dirname(html_path), exist_ok=True)
     m.save(html_path)
     

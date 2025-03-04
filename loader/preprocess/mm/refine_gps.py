@@ -24,9 +24,9 @@ def convert_single(group, time_zone):
     group = group.sort_values(by=2).reset_index()
     group = group.drop(columns="index", axis=1, inplace=False)
     beg, end = group.index[0], group.index[-1]
-    print("Now here!")
-    print(beg, end, group.at[end, 2], group.at[beg, 2])
-    print( group.at[end, 2] - group.at[beg, 2])
+    # print("Now here!")
+    # print(beg, end, group.at[end, 2], group.at[beg, 2])
+    # print( group.at[end, 2] - group.at[beg, 2])
     duration = group.at[end, 2] - group.at[beg, 2]
     if duration <= 300 or duration > 7200: # org : duration > 7200
         return None
@@ -43,7 +43,7 @@ def get_trajectories(date, raw_traj_path):
     data = pd.read_csv(open(join(raw_traj_path, f"gps_{date}"), "r"), header=None, sep=',')
     data = data.drop(columns=[0], axis=1, inplace=False)
     data[1] = data[1].astype(str)
-    data[2] = data[2].astype(int)
+    data[2] = data[2].astype(int) # time
     data[3] = data[3].astype(float)
     data[4] = data[4].astype(float)
     print(data.head())

@@ -140,3 +140,93 @@ class EPSM(nn.Module):
             x, _ = up_block(x, None, t)
         x = self.final_conv(x)
         return x
+
+class EPSM_SimTime(nn.Module):
+    
+    def __init__(self, n_vertex, x_emb_dim, dims, hidden_dim, device, pretrain_path=None):
+        super().__init__()
+        time_dim = hidden_dim
+        self.device = device
+        # temporal embedding
+        self.time_mlp = nn.Sequential(
+            SinusoidalPosEmb(time_dim, device), 
+            nn.Linear(time_dim, 4 * time_dim, device=device), 
+            nn.Mish(), 
+            nn.Linear(4 * time_dim, time_dim, device=device)
+        )
+
+        self.sim_time_mlp = nn.Sequential(
+            nn.Linear(1, time_dim, device=device),
+            nn.Mish(),
+            nn.Linear(time_dim, 4 * time_dim, device=device), 
+            nn.Mish(), 
+            nn.Linear(4 * time_dim, time_dim, device=device)
+        )
+        # n_vertex denotes <end>,  n_vertex + 1 denotes <padding>
+        if pretrain_path is not None:
+            node2vec = pickle.load(open(pretrain_path, "rb"))
+            assert n_vertex == len(node2vec)
+            if x_emb_dim != node2vec[0].shape[0]:
+                print("Use pretrained embed dims")
+            x_emb_dim = node2vec[0].shape[0]
+            nodeemb = torch.zeros(n_vertex + 2, x_emb_dim)
+            for k in node2vec:
+                nodeemb[k] = torch.from_numpy(node2vec[k])
+            self.x_embedding = nn.Embedding.from_pretrained(nodeemb, freeze=False).to(device)
+        else:
+            self.x_embedding = nn.Embedding(n_vertex + 2, x_emb_dim, padding_idx=n_vertex, device=device)
+        
+        in_out_dim = [(a, b) for a, b in zip(dims, dims[1:])]
+        print(in_out_dim)
+        # down blocks
+        self.down_blocks = []
+        n_reso = len(in_out_dim)
+        for k, (in_dim, out_dim) in enumerate(in_out_dim):
+            self.down_blocks.append(UnetBlock(
+                in_dim, time_dim, out_dim, device, 
+                down_up="down", last=(k == n_reso - 1)))
+        
+        # middle parts
+        mid_dim = dims[-1]
+        self.mid_block1 = XTResBlock(mid_dim, time_dim, mid_dim, device)
+        self.mid_attn = Residual(LinearAttention(mid_dim, device))
+        self.mid_block2 = XTResBlock(mid_dim, time_dim, mid_dim, device)
+
+        # up blocks
+        self.up_blocks = []
+        for k, (out_dim, in_dim) in enumerate(reversed(in_out_dim[1:])):
+            self.up_blocks.append(UnetBlock(
+                in_dim * 2, time_dim, out_dim, device, 
+                down_up="up", last=(k == n_reso - 1)))
+        
+        # final parts
+        self.final_conv = nn.Sequential(
+            Conv1dBlock(in_out_dim[1][0], dims[0], kernel_size=5),
+            Rearrange("b h c -> b c h"), 
+            nn.Conv1d(dims[0], n_vertex, 1, device=device),
+            Rearrange("b c h -> b h c")
+        ).to(device)
+        
+        
+    def forward(self, xt_padded, lengths, t, sim_time):
+        # xt_padded: shape b, h, each is a xt label
+        # t: shape b
+        # sim_time: shape b
+        t = self.time_mlp(t)
+        sim_time = self.sim_time_mlp(sim_time)
+        t = t + sim_time
+        x = self.x_embedding(xt_padded)
+        hiddens = []
+        for k, down_block in enumerate(self.down_blocks):
+            x, h = down_block(x, lengths if k == 0 else None, t)
+            hiddens.append(h)
+        
+        x = self.mid_block1(x, t)
+        x = self.mid_attn(x, None)
+        x = self.mid_block2(x, t)
+        
+        for up_block in self.up_blocks:
+            x = torch.cat((x, hiddens.pop()), dim=-1)
+            x, _ = up_block(x, None, t)
+        x = self.final_conv(x)
+        return x
