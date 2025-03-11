@@ -40,12 +40,11 @@ class Trainer:
             for epoch in range(n_epoch):
                 for xs in trainloader:
                     kl_loss, ce_loss, con_loss = self.model(xs)
-                    # loss = kl_loss
                     if ce_loss.item() < 60:
                         loss = kl_loss
                     else:
-                        # loss = kl_loss + ce_loss + con_loss
-                        loss = kl_loss + ce_loss
+                        loss = kl_loss + ce_loss + con_loss
+                        # loss = kl_loss + ce_loss
                     train_loss_avg += loss.item()
                     kl_loss_avg += kl_loss.item()
                     ce_loss_avg += ce_loss.item()
