@@ -179,8 +179,7 @@ class Restorer(nn.Module):
                 Et_minus_one_bar_hat_x0 = self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1)
                 Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                 pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
-                pred_probs = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
-                pred_probs[pred_probs < 0] = 0.
+                pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                 xt = torch.multinomial(pred_probs, num_samples=1, replacement=True)
                 xt = rearrange(xt, "(b h) 1 -> b h", b=n_samples)
                 if ret_trace:
@@ -306,7 +305,7 @@ class Restorer_SimTime(nn.Module):
         Et_minus_one_bar_hat_x0 = (self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1).to(self.des_device)).to(self.device)
         Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
         pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
-        pred_probs = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
+        pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
         pred_logits = probs_to_logits(pred_probs)
         pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
         eps = 0.000001
@@ -366,8 +365,7 @@ class Restorer_SimTime(nn.Module):
                 Et_minus_one_bar_hat_x0 = self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1)
                 Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                 pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
-                pred_probs = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
-                pred_probs[pred_probs < 0] = 0.
+                pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                 xt = torch.multinomial(pred_probs, num_samples=1, replacement=True)
                 xt = rearrange(xt, "(b h) 1 -> b h", b=n_samples)
                 if ret_trace:
