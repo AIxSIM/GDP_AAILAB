@@ -19,7 +19,8 @@ def get_argparser() -> argparse.ArgumentParser:
     parser.add_argument("-n_path", type=int, help="number of path", default=8000)
     parser.add_argument("-min_len", type=int, help="path length lower bound", default=4)
     parser.add_argument("-max_len", type=int, help="path length upper bound", default=15)
-    
+    parser.add_argument("-sim_time", type=bool, help="simulation time condition", default=False)
+
     # model config 
     parser.add_argument("-model_name", type=str, help="model name")
     parser.add_argument("-method", type=str, help="method: cold, naive")

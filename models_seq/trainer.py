@@ -79,7 +79,85 @@ class Trainer:
         lenghts = np.array([len(self.dataset[k]) for k in range(gmm_samples)]).reshape(-1, 1)
         gmm.fit(lenghts)
         self.model.gmm = gmm  
-        
+
+
+    def eval_test(self, test_loader):
+        with torch.no_grad():
+            for txs in cycle(test_loader):
+                kl_loss, ce_loss, test_con = self.model(txs)
+                yield (kl_loss.item(), ce_loss.item(), test_con.item())
+
+class Trainer_SimTime:
+    def __init__(self, model: nn.Module, dataset, model_path):
+        self.model = model
+        self.device = model.device
+        self.dataset = dataset
+        self.model_path = model_path
+
+    def custom_collate_fn(self, data):
+        paths = [torch.tensor(item[0], dtype=torch.float32) for item in data]
+        times = [torch.tensor(item[1], dtype=torch.float32).unsqueeze(0) for item in data]
+        return paths, times
+
+    def train(self, n_epoch, batch_size, lr):
+        optimizer = torch.optim.Adam(self.model.parameters(), lr)
+        # split train test
+        train_num = int(0.8 * len(self.dataset))
+        train_dataset, test_dataset = random_split(self.dataset, [train_num , len(self.dataset) - train_num])
+
+        trainloader = DataLoader(train_dataset, batch_size,
+                                    collate_fn=self.custom_collate_fn
+                                )
+
+        testloader = DataLoader(test_dataset, batch_size,
+                                    collate_fn=self.custom_collate_fn
+                                )
+
+        self.model.train()
+        iter, train_loss_avg = 0, 0
+        kl_loss_avg, ce_loss_avg, con_loss_avg = 0, 0, 0
+        try:
+            for epoch in range(n_epoch):
+                for xs in trainloader:
+                    kl_loss, ce_loss, con_loss = self.model(xs)
+                    if ce_loss.item() < 60:
+                        loss =  kl_loss
+                    else:
+                        loss = kl_loss + ce_loss + con_loss
+                        # loss = kl_loss + ce_loss
+                    train_loss_avg += loss.item()
+                    kl_loss_avg += kl_loss.item()
+                    ce_loss_avg += ce_loss.item()
+                    con_loss_avg += con_loss.item()
+                    optimizer.zero_grad()
+                    loss.backward()
+                    # TODO: clip norm
+                    optimizer.step()
+                    iter += 1
+                    if iter % 100 == 0 or iter == 1:
+                        # eval test
+                        denom = 1 if iter == 1 else 100
+                        test_kl, test_ce, test_con = next(self.eval_test(testloader))
+                        test_loss = test_kl + test_ce + test_con
+                        print(f"e: {epoch}, i: {iter}, train loss: {train_loss_avg / denom: .4f}, (kl: {kl_loss_avg / denom: .4f}, ce: {ce_loss_avg / denom: .4f}, co: {con_loss_avg / denom: .4f}), test loss: {test_loss: .4f}, (kl: {test_kl: .4f}, ce: {test_ce: .4f}, co: {test_con: .4f})")
+                        train_loss_avg, kl_loss_avg, ce_loss_avg, con_loss_avg = 0., 0., 0., 0.
+        except KeyboardInterrupt as E:
+            print("Training interruptted, begin saving...")
+            self.model.eval()
+            model_name = f"tmp_iter_{iter}.pth"
+        # save
+        self.model.eval()
+        # model_name = f"finished_{iter}.pth"
+        # torch.save(self.model, join(self.model_path, model_name))
+        # print("save finished!")
+
+    def train_gmm(self, gmm_samples, n_comp):
+        gmm = GaussianMixture(n_components=n_comp, covariance_type="tied")
+        gmm_samples = min(len(self.dataset), gmm_samples)
+        lenghts = np.array([len(self.dataset[k][0]) for k in range(gmm_samples)]).reshape(-1, 1)
+        gmm.fit(lenghts)
+        self.model.gmm = gmm
+
             
     def eval_test(self, test_loader):
         with torch.no_grad():

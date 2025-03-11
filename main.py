@@ -1,7 +1,7 @@
 from os.path import join
 import torch
 from loader.gen_graph import DataGenerator
-from loader.dataset import TrajFastDataset
+from loader.dataset import TrajFastDataset, TrajFastDataset_SimTime
 from utils.argparser import get_argparser
 from utils.evaluate import Evaluator
 
@@ -26,7 +26,10 @@ if __name__ == "__main__":
         dataset = DataGenerator(args.n_vertex, args.n_path, args.min_len, args.max_len, device, args.path, name)
     elif args.d_name != "":
         date = "20190701" if "dj" in args.d_name else "dj"
-        dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
+        if args.sim_time == True:
+            dataset = TrajFastDataset_SimTime(args.d_name, [date], args.path, device, is_pretrain=True)
+        elif args.sim_time == False:
+            dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
         n_vertex = dataset.n_vertex
         print(f"vertex: {n_vertex}")
 
@@ -36,9 +39,9 @@ if __name__ == "__main__":
 
     # set model
     if args.method == "seq":
-        from models_seq.seq_models import Destroyer, Restorer
-        from models_seq.eps_models import EPSM
-        from models_seq.trainer import Trainer
+        from models_seq.seq_models import Destroyer, Restorer, Restorer_SimTime
+        from models_seq.eps_models import EPSM, EPSM_SimTime
+        from models_seq.trainer import Trainer, Trainer_SimTime
 
         suffix = args.d_name
 
@@ -46,11 +49,27 @@ if __name__ == "__main__":
         destroyer = Destroyer(dataset.A, betas, args.max_T, device)
         pretrain_path = join(args.path, f"{args.d_name}_node2vec.pkl")
         dims = eval(args.dims)
-        eps_model = EPSM(dataset.n_vertex, x_emb_dim=args.x_emb_dim, dims=dims, device=device,
-                         hidden_dim=args.hidden_dim, pretrain_path=pretrain_path)
-        model = Restorer(eps_model, destroyer, device)
 
-        trainer = Trainer(model, dataset, args.model_path)
+        ######################################################## unconditional EPSM ####################################################################
+        if not args.sim_time:
+            eps_model = EPSM(dataset.n_vertex, x_emb_dim=args.x_emb_dim, dims=dims, device=device,
+                            hidden_dim=args.hidden_dim, pretrain_path=pretrain_path)
+            model = Restorer(eps_model, destroyer, device)
+            trainer = Trainer(model, dataset, args.model_path)
+
+        ##################################################################################################################################################
+
+
+        ############################################ simulation-time conditioned EPSM ####################################################################
+        elif args.sim_time:
+            eps_model = EPSM_SimTime(dataset.n_vertex, x_emb_dim=args.x_emb_dim, dims=dims, device=device,
+                            hidden_dim=args.hidden_dim, pretrain_path=pretrain_path)
+
+            model = Restorer_SimTime(eps_model, destroyer, device)
+
+            trainer = Trainer_SimTime(model, dataset, args.model_path)
+        ##################################################################################################################################################
+
         trainer.train_gmm(gmm_samples=args.gmm_samples, n_comp=args.gmm_comp)
         trainer.train(args.n_epoch, args.bs, args.lr)
         model.eval()
@@ -78,7 +97,7 @@ if __name__ == "__main__":
         real_paths = dataset.get_real_paths(args.eval_num)
         torch.save(gen_paths, join(args.model_path, "gen_paths.pth"))
         evaluator = Evaluator(real_paths, gen_paths, model, n_vertex, dataset=dataset,
-                              name=join(args.res_path, f"{args.model_name}_pure_gen"))
+                              name=join(args.res_path, f"{args.model_name}_pure_gen"), sim_time = args.sim_time)
         evaluator.eval(suffix=args.d_name)
         res = evaluator.eval_all()
         print(res)
