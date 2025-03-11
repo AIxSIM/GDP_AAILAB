@@ -55,7 +55,7 @@ if __name__ == "__main__":
             eps_model = EPSM(dataset.n_vertex, x_emb_dim=args.x_emb_dim, dims=dims, device=device,
                             hidden_dim=args.hidden_dim, pretrain_path=pretrain_path)
             model = Restorer(eps_model, destroyer, device)
-            trainer = Trainer(model, dataset, args.model_path)
+            trainer = Trainer(model, dataset, args.model_path, args.model_name)
 
         ##################################################################################################################################################
 
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
             model = Restorer_SimTime(eps_model, destroyer, device)
 
-            trainer = Trainer_SimTime(model, dataset, args.model_path)
+            trainer = Trainer_SimTime(model, dataset, args.model_path, args.model_name)
         ##################################################################################################################################################
 
         trainer.train_gmm(gmm_samples=args.gmm_samples, n_comp=args.gmm_comp)
