@@ -180,7 +180,11 @@ class Restorer(nn.Module):
                 Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                 pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
                 pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
-                xt = torch.multinomial(pred_probs, num_samples=1, replacement=True)
+                try:
+                    xt = torch.multinomial(pred_probs, num_samples=1, replacement=True)
+                except:
+                    import pdb
+                    pdb.set_trace()
                 xt = rearrange(xt, "(b h) 1 -> b h", b=n_samples)
                 if ret_trace:
                     reverse_trace[t] = [xt[k][:lengths[k]].cpu().tolist() for k in range(n_samples)]
