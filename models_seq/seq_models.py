@@ -179,7 +179,10 @@ class Restorer(nn.Module):
                 Et_minus_one_bar_hat_x0 = self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1)
                 Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                 pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
-                pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                sum_probs = torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                pred_probs = pred_probs_unorm / sum_probs
+                mask = (sum_probs == 0.)
+                pred_probs[mask] = 1.0 / pred_probs.shape[1]
                 try:
                     xt = torch.multinomial(pred_probs, num_samples=1, replacement=True)
                 except:
