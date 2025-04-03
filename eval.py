@@ -1,7 +1,7 @@
 from os.path import join
 import torch
 from loader.gen_graph import DataGenerator
-from loader.dataset import TrajFastDataset
+from loader.dataset import TrajFastDataset , TrajFastDataset_SimTime
 from utils.argparser import get_argparser
 from utils.evaluate import Evaluator
 
@@ -26,7 +26,11 @@ if __name__ == "__main__":
         dataset = DataGenerator(args.n_vertex, args.n_path, args.min_len, args.max_len, device, args.path, name)
     elif args.d_name != "":
         date = "20190701" if "dj" in args.d_name else "dj"
-        dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
+        if args.sim_time == True:
+            dataset = TrajFastDataset_SimTime(args.d_name, [date], args.path, device, is_pretrain=True)
+        elif args.sim_time == False:
+            dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
+
         n_vertex = dataset.n_vertex
         print(f"vertex: {n_vertex}")
 
@@ -42,7 +46,7 @@ if __name__ == "__main__":
         gen_paths = model.sample(args.eval_num)
         real_paths = dataset.get_real_paths(args.eval_num)
 
-        torch.save(gen_paths, join(args.model_path, "gen_paths.pth"))
+        torch.save(gen_paths, join(args.model_path, f"{args.model_name}_gen_paths.pth"))
         evaluator = Evaluator(real_paths, gen_paths, model, n_vertex, dataset=dataset,
                               name=join(args.res_path, f"{args.model_name}_pure_gen"))
         evaluator.eval(suffix=args.d_name)
