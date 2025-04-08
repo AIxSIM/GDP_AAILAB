@@ -34,6 +34,7 @@ class Trainer:
 
         # randomly removed edge for new A' and defined sampler that only sample paths that satisfy A'
         A_new = self.drop_edges_symmetric(self.model.A, drop_ratio=0.1)
+        torch.save(A_new, join(self.model_path, f"{self.model_name}_A_new.pt"))
         train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
         test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
 
