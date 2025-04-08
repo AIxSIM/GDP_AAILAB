@@ -221,7 +221,6 @@ class CustomPathBatchSampler(Sampler):
         for i in range(len(path) - 1):
             u, v = path[i], path[i+1]
             if self.A[u, v] == 0:
-                print(f"Invalid edge:{u, v}; path: {path}")
                 return False
         return True
 
