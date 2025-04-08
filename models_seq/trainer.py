@@ -29,6 +29,9 @@ class Trainer:
         # split train test
         train_num = int(0.8 * len(self.dataset))
         train_dataset, test_dataset = random_split(self.dataset, [train_num , len(self.dataset) - train_num])
+
+        import pdb
+        pdb.set_trace()
         
         trainloader = DataLoader(train_dataset, batch_size, 
                                     collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
