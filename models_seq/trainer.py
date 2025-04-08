@@ -3,12 +3,13 @@ from math import exp
 import torch 
 import torch.nn as nn 
 import torch.nn.functional as F 
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader, random_split, Sampler
 from models_seq.eps_models import EPSM
 from loader.dataset import TrajFastDataset
 from models_seq.seq_models import Destroyer, Restorer
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 
 from itertools import cycle
 from os.path import join
@@ -22,20 +23,23 @@ class Trainer:
         self.dataset = dataset
         self.model_path = model_path
         self.model_name = model_name
-        
+
     def train(self, n_epoch, batch_size, lr):
         torch.autograd.set_detect_anomaly(True)
         optimizer = torch.optim.Adam(self.model.parameters(), lr)
+
         # split train test
         train_num = int(0.8 * len(self.dataset))
         train_dataset, test_dataset = random_split(self.dataset, [train_num , len(self.dataset) - train_num])
 
-        import pdb
-        pdb.set_trace()
-        
-        trainloader = DataLoader(train_dataset, batch_size, 
+        # randomly removed edge for new A' and defined sampler that only sample paths that satisfy A'
+        A_new = self.drop_edges_symmetric(self.model.A, drop_ratio=0.1)
+        train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
+        test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
+
+        trainloader = DataLoader(train_dataset, batch_sampler=train_sampler,
                                     collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
-        testloader = DataLoader(test_dataset, batch_size, 
+        testloader = DataLoader(test_dataset, batch_sampler=test_sampler,
                                 collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
         self.model.train()
         iter, train_loss_avg = 0, 0
@@ -77,7 +81,7 @@ class Trainer:
         # model_name = f"finished_{iter}.pth"
         # torch.save(self.model, join(self.model_path, model_name))
         # print("save finished!")
-        
+
     def train_gmm(self, gmm_samples, n_comp):
         gmm = GaussianMixture(n_components=n_comp, covariance_type="tied")
         gmm_samples = min(len(self.dataset), gmm_samples)
@@ -91,6 +95,26 @@ class Trainer:
             for txs in cycle(test_loader):
                 kl_loss, ce_loss, test_con = self.model(txs)
                 yield (kl_loss.item(), ce_loss.item(), test_con.item())
+
+    def drop_edges_symmetric(self, A, drop_ratio=0.1):
+        A = A.clone().cpu()
+        N = A.size(0)
+
+        row_idx, col_idx = torch.triu_indices(N, N, offset=1)
+        edge_mask = A[row_idx, col_idx] == 1
+        edge_indices = torch.stack([row_idx[edge_mask], col_idx[edge_mask]], dim=0)
+
+        num_edges = edge_indices.size(1)
+        num_to_drop = int(num_edges * drop_ratio)
+
+        perm = torch.randperm(num_edges)
+        edges_to_drop = edge_indices[:, perm[:num_to_drop]]
+
+        A[edges_to_drop[0], edges_to_drop[1]] = 0
+        A[edges_to_drop[1], edges_to_drop[0]] = 0
+
+        return A
+
 
 class Trainer_SimTime:
     def __init__(self, model: nn.Module, dataset, model_path):
@@ -169,6 +193,39 @@ class Trainer_SimTime:
             for txs in cycle(test_loader):
                 kl_loss, ce_loss, test_con = self.model(txs)
                 yield (kl_loss.item(), ce_loss.item(), test_con.item())
+
+
+class CustomPathBatchSampler(Sampler):
+    def __init__(self, dataset, batch_size, adjacency_matrix, shuffle=True):
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.A = adjacency_matrix
+        self.shuffle = shuffle
+
+    def __iter__(self):
+        indices = list(range(len(self.dataset)))
+        if self.shuffle:
+            random.shuffle(indices)
+
+        current_batch = []
+        for idx in indices:
+            path = self.dataset[idx]
+            if self._valid_path(path):
+                current_batch.append(idx)
+            if len(current_batch) == self.batch_size:
+                yield current_batch
+                current_batch = []
+
+    def _valid_path(self, path):
+        for i in range(len(path) - 1):
+            u, v = path[i], path[i+1]
+            if self.A[u, v] == 0:
+                print(f"Invalid edge:{u, v}; path: {path}")
+                return False
+        return True
+
+    def __len__(self):
+        return len(self.dataset) // self.batch_size
 
 
 if __name__ == "__main__":
