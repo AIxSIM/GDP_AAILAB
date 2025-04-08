@@ -36,7 +36,7 @@ class Trainer:
         A_new = self.drop_edges_symmetric(self.model.A, drop_ratio=0.1)
         torch.save(A_new, join(self.model_path, f"{self.model_name}_A_new.pt"))
         train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
-        test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
+        test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=False)
 
         trainloader = DataLoader(train_dataset, batch_sampler=train_sampler,
                                     collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
