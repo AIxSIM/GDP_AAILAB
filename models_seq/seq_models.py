@@ -222,7 +222,7 @@ class Restorer(nn.Module):
                         random = x_next_masked_prob.sum(-1, keepdim=False) < 0.000001
                         x_next_masked_prob[random] = 1.
                         if applying_mask_intermeidate_temperature:
-                            x_next_masked_prob = self.A[xt[:, k - 1].view(-1)] * x_next_masked_prob * ((self.max_T - t) / self.max_T) + pred_prob_[:, k] * (t / self.max_T)
+                            x_next_masked_prob = self.A[xt[:, k - 1].view(-1)] * x_next_masked_prob * ((self.max_T - t) / self.max_T) + x_next_masked_prob * (t / self.max_T)
                         else:  ## Hard topology on every xt
                             x_next_masked_prob = self.A[xt[:, k - 1].view(-1)] * x_next_masked_prob  # b * v
                         xt[:, k] = torch.multinomial(x_next_masked_prob, 1).view(-1)
