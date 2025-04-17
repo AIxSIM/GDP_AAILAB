@@ -41,6 +41,9 @@ if __name__ == "__main__":
         # TODO: need to change device for all modules in model
         model.eval()
 
+        model.applying_mask_intermediate = args.applying_mask_intermediate
+        model.applying_mask_intermeidate_temperature = args.applying_mask_intermeidate_temperature
+
         # gen_paths: list of lists (len: eval_num, element: list of nodes)
         # real_paths: list of lists (len: eval_num, element: list of nodes)
         gen_paths = model.sample(args.eval_num)

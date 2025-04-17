@@ -81,6 +81,9 @@ class Restorer(nn.Module):
         self.Q = self.destroyer.get_Q()
         self.Q = self.Q.to(self.device)
         self.max_deg = self.A.sum(1).max()
+
+        self.applying_mask_intermediate = False
+        self.applying_mask_intermeidate_temperature = False
     
     def forward(self, xs):
         # xs: list of tensors of labels
@@ -158,6 +161,28 @@ class Restorer(nn.Module):
         return paths
     
     def sample_with_len(self, lengths, ret_distr=False, xt=None, T=None, ret_trace=False):
+        ############################################## YM
+        applying_mask_intermediate = self.applying_mask_intermediate
+        applying_mask_intermeidate_temperature = self.applying_mask_intermeidate_temperature
+        ## 1. No constrint
+        # self.A = torch.ones_like(self.A)
+
+        ## 2. Random constrarint
+        # upper_tri_prob = torch.bernoulli(torch.full((1470, 1470), 0.01)).int().to(self.A.device)
+        # upper_tri = torch.triu(upper_tri_prob)
+        # self.A = upper_tri + upper_tri.T - torch.diag(torch.diag(upper_tri))
+
+        ## 3. Only one node active
+        # self.A = torch.zeros((1470, 1470), dtype=torch.int).to(self.A.device)
+        # self.A[0, :] = 1
+        # self.A[:, 0] = 1
+
+        ## Check symmetric or not
+        # is_symmetric = torch.allclose(self.A, self.A.T)
+        # print("Is symmetric:", is_symmetric)
+        # print(self.A)
+        ##############################################
+
         if ret_trace:
             reverse_trace = defaultdict(list) # t -> [path1, path2,...]
         if T is None:
@@ -173,7 +198,7 @@ class Restorer(nn.Module):
             for t in range(T, 0, -1):
                 ts = torch.Tensor([t]).long().to(self.device).repeat(n_samples)
                 x0_pred_logits = self.restore(xt, lengths, ts) 
-                x0_pred_probs = F.softmax(x0_pred_logits, dim=-1)  
+                x0_pred_probs = F.softmax(x0_pred_logits, dim=-1)
                 # pred_probs_unorm = E_t @ x_t * \bar{E}_{t-1} @ \hat{x}_0  x_0 is logits while x_t is categorical
                 EtXt = self.Q[t, :, xt.view(-1)].T
                 Et_minus_one_bar_hat_x0 = self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1)
@@ -183,18 +208,35 @@ class Restorer(nn.Module):
                 pred_probs = pred_probs_unorm / sum_probs
                 mask = (sum_probs == 1e-8)[:, 0]
                 pred_probs[mask] = 1.0 / pred_probs.shape[1]
-                try:
+
+                if applying_mask_intermediate:
+                    pred_prob_ = rearrange(pred_probs, "(b h) c -> b h c", b=n_samples)
+                    xt = torch.zeros([n_samples, horizon]).long().to(self.device)
+                    xt[:, 0] = torch.multinomial(pred_prob_[:, 0], 1).view(-1)
+
+                    for k in range(1, horizon):
+                        if applying_mask_intermeidate_temperature:
+                            x_next_masked_prob = self.A[xt[:, k - 1].view(-1)] * (pred_prob_[:, k]) * ((self.max_T - t) / self.max_T) + pred_prob_[:, k] * ( t / self.max_T)
+                        else: ## Hard topology on every xt
+                            x_next_masked_prob = self.A[xt[:, k - 1].view(-1)] * (pred_prob_[:, k])  # b * v
+                        random = x_next_masked_prob.sum(-1, keepdim=False) < 0.000001
+                        x_next_masked_prob[random] = 1.
+                        if applying_mask_intermeidate_temperature:
+                            x_next_masked_prob = self.A[xt[:, k - 1].view(-1)] * (pred_prob_[:, k]) * (
+                                        (self.max_T - t) / self.max_T) + pred_prob_[:, k] * (t / self.max_T)
+                        else:  ## Hard topology on every xt
+                            x_next_masked_prob = self.A[xt[:, k - 1].view(-1)] * (pred_prob_[:, k])  # b * v
+                        xt[:, k] = torch.multinomial(x_next_masked_prob, 1).view(-1)
+                else:
                     xt = torch.multinomial(pred_probs, num_samples=1, replacement=True)
-                except:
-                    import pdb
-                    pdb.set_trace()
-                xt = rearrange(xt, "(b h) 1 -> b h", b=n_samples)
+                    xt = rearrange(xt, "(b h) 1 -> b h", b=n_samples) #torch.Size([n_samples, horizon])
+
                 if ret_trace:
                     reverse_trace[t] = [xt[k][:lengths[k]].cpu().tolist() for k in range(n_samples)]
-            # torch.multinomial(x0_pred_probs, num_samples=1, replacement=True)
-            # x = self.beam_search(x0_pred_probs, lengths, n_beam=10)
+
             x = torch.zeros_like(xt).long().to(self.device)
             x[:, 0] = torch.multinomial(x0_pred_probs[:, 0], 1).view(-1)
+
             for k in range(1, horizon):
                 x_next_masked_prob = self.A[x[:, k - 1].view(-1)] * (x0_pred_probs[:, k]) # b * v
                 random = x_next_masked_prob.sum(-1, keepdim=False) < 0.000001
