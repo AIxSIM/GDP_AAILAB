@@ -4,11 +4,16 @@ from loader.gen_graph import DataGenerator
 from loader.dataset import TrajFastDataset , TrajFastDataset_SimTime
 from utils.argparser import get_argparser
 from utils.evaluate import Evaluator
-
+import numpy as np
+import random
 
 if __name__ == "__main__":
     torch.manual_seed(1)
     torch.cuda.manual_seed_all(1)
+    np.random.seed(1)
+    random.seed(1)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     parser = get_argparser()
     args = parser.parse_args()
 
@@ -49,13 +54,13 @@ if __name__ == "__main__":
         gen_paths = model.sample(args.eval_num)
         real_paths = dataset.get_real_paths(args.eval_num)
 
-        torch.save(gen_paths, join(args.model_path, f"{args.model_name}_gen_paths.pth"))
+        torch.save(gen_paths, join(args.model_path, f"{args.model_name}_{args.save_name}_gen_paths.pth"))
         evaluator = Evaluator(real_paths, gen_paths, model, n_vertex, dataset=dataset,
-                              name=join(args.res_path, f"{args.model_name}_pure_gen"), sim_time=args.sim_time)
-        evaluator.eval(suffix=args.model_name)
+                              name=join(args.res_path, f"{args.model_name}_{args.save_name}_pure_gen"), sim_time=args.sim_time)
+        evaluator.eval(suffix=f"{args.model_name}_{args.save_name}")
         res = evaluator.eval_all()
         print(res)
-        with open(join(args.res_path, f"{args.model_name}.res"), "w") as f:
+        with open(join(args.res_path, f"{args.model_name}_{args.save_name}.res"), "w") as f:
             f.writelines(str(res))
 
     if args.method == "plan":
