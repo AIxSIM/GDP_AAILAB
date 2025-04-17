@@ -19,7 +19,7 @@ def get_argparser() -> argparse.ArgumentParser:
     parser.add_argument("-n_path", type=int, help="number of path", default=8000)
     parser.add_argument("-min_len", type=int, help="path length lower bound", default=4)
     parser.add_argument("-max_len", type=int, help="path length upper bound", default=15)
-    parser.add_argument("-sim_time", type=bool, help="simulation time condition", default=False)
+    parser.add_argument("-sim_time", action="store_true", help="simulation time condition")
 
     # model config 
     parser.add_argument("-model_name", type=str, help="model name")
@@ -56,8 +56,8 @@ def get_argparser() -> argparse.ArgumentParser:
     
     # eval config
     parser.add_argument("-eval_num", type=int, help="evaluation sample number, int", default=1000)
-    parser.add_argument("-applying_mask_intermediate", type=bool, help="applying_mask_intermediate", default=False)
-    parser.add_argument("-applying_mask_intermeidate_temperature", type=bool, help="applying_mask_intermeidate_temperature", default=False)
+    parser.add_argument("-applying_mask_intermediate", action="store_true", help="Apply mask intermediate")
+    parser.add_argument("-applying_mask_intermeidate_temperature", action="store_true", help="applying_mask_intermeidate_temperature")
     parser.add_argument("-save_name", type=str, help="save name", default="")
     
     return parser
