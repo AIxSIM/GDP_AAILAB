@@ -114,7 +114,7 @@ class TrajFastDataset(Dataset):
         choices = np.random.choice(a=self.total_len, size=num, replace=False).tolist() # org : replace = False / 비복원추출
         return [self.__getitem__(c) for c in choices]
 
-    def edit(self, removal=None, is_random=False): # removal : {"nodes": [xxx, yyy, zzz], "edges": [[XXX, YYY], [ZZZ, WWW]], "regions" : list of [[min_lat, max_lat], [min_lng, max_lng]]}
+    def edit(self, removal=None, is_random=False, direct_change=False): # removal : {"nodes": [xxx, yyy, zzz], "edges": [[XXX, YYY], [ZZZ, WWW]], "regions" : list of [[min_lat, max_lat], [min_lng, max_lng]]}
         if (removal is None) and (not is_random):
             exit("Please check edit in dataset.py")
 
@@ -160,9 +160,12 @@ class TrajFastDataset(Dataset):
                         new_A[node, :], new_A[:, node] = 0, 0
                         break
 
-        self.A.data = new_A.data
+        assert torch.all(new_A.transpose(0, 1) == new_A)
 
-        assert torch.all(self.A.transpose(0, 1) == self.A)
+        if direct_change:
+            self.A.data = new_A.data
+        else:
+            return new_A
 
 
 class TrajFastDataset_SimTime(Dataset):

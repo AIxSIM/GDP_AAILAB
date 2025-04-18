@@ -71,7 +71,11 @@ if __name__ == "__main__":
         ##################################################################################################################################################
 
         trainer.train_gmm(gmm_samples=args.gmm_samples, n_comp=args.gmm_comp)
-        trainer.train(args.n_epoch, args.bs, args.lr)
+
+        if args.min_lat != -1:
+            remove_region = [[[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]]
+
+        trainer.train(args.n_epoch, args.bs, args.lr, remove_region=remove_region)
         model.eval()
         torch.save(model, join(args.model_path, f"{args.model_name}.pth"))
         model.eval()

@@ -24,7 +24,7 @@ class Trainer:
         self.model_path = model_path
         self.model_name = model_name
 
-    def train(self, n_epoch, batch_size, lr):
+    def train(self, n_epoch, batch_size, lr, remove_region=None):
         torch.autograd.set_detect_anomaly(True)
         optimizer = torch.optim.Adam(self.model.parameters(), lr)
 
@@ -33,10 +33,12 @@ class Trainer:
         train_dataset, test_dataset = random_split(self.dataset, [train_num , len(self.dataset) - train_num])
 
         # randomly removed edge for new A' and defined sampler that only sample paths that satisfy A'
-        A_new = self.drop_edges_symmetric(self.model.A, drop_ratio=0.1)
-        torch.save(A_new, join(self.model_path, f"{self.model_name}_A_new.pt"))
-        train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
-        test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=False)
+
+        if remove_region is not None:
+            A_new = self.dataset.edit(removal={"regions": remove_region}, direct_change=False)
+            torch.save(A_new, join(self.model_path, f"{self.model_name}_{remove_region}_A_new.pt"))
+            train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
+            test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=False)
 
         trainloader = DataLoader(train_dataset, batch_sampler=train_sampler,
                                     collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])

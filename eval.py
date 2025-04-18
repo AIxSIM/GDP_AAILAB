@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
         if args.min_lat != -1:
             model.edit(removal={"regions" : [[[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]]},
-                       G=dataset.G)
+                       G=dataset.G, direct_change=True)
 
         # gen_paths: list of lists (len: eval_num, element: list of nodes)
         # real_paths: list of lists (len: eval_num, element: list of nodes)
