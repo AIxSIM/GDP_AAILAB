@@ -74,6 +74,8 @@ if __name__ == "__main__":
 
         if args.min_lat != -1:
             remove_region = [[[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]]
+        else:
+            remove_region = None
 
         trainer.train(args.n_epoch, args.bs, args.lr, remove_region=remove_region)
         model.eval()
