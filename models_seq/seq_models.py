@@ -355,7 +355,7 @@ class Restorer(nn.Module):
                     if lat_range[0] <= lat <= lat_range[1] and lng_range[0] <= lng <= lng_range[1]:
                         new_A[node, :], new_A[:, node] = 0, 0
                         break
-        print(f'remove {(new_A.data - self.A.data).sum()/2} pairs.')
+        print(f'remove {(self.A.data - new_A.data).sum()/2} pairs.')
         self.A.data = new_A.data
 
         assert torch.all(self.A.transpose(0, 1) == self.A)
