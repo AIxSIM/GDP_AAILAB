@@ -83,7 +83,7 @@ class Restorer(nn.Module):
         self.max_deg = self.A.sum(1).max()
 
         self.applying_mask_intermediate = False
-        self.applying_mask_intermeidate_temperature = False
+        self.applying_mask_intermediate_temperature = False
     
     def forward(self, xs):
         # xs: list of tensors of labels
@@ -163,7 +163,7 @@ class Restorer(nn.Module):
     def sample_with_len(self, lengths, ret_distr=False, xt=None, T=None, ret_trace=False):
         ############################################## YM
         applying_mask_intermediate = self.applying_mask_intermediate
-        applying_mask_intermeidate_temperature = self.applying_mask_intermeidate_temperature
+        applying_mask_intermediate_temperature = self.applying_mask_intermediate_temperature
         ## 1. No constrint
         # self.A = torch.ones_like(self.A)
 
@@ -189,7 +189,7 @@ class Restorer(nn.Module):
             T = self.max_T
         # use x0 directly
         print('mask_int: ', applying_mask_intermediate)
-        print('mask_int_temp: ', applying_mask_intermeidate_temperature)
+        print('mask_int_temp: ', applying_mask_intermediate_temperature)
         n_samples = lengths.shape[0]
         horizon = max(lengths)
         if xt is None:
@@ -221,13 +221,13 @@ class Restorer(nn.Module):
                     xt[:, 0] = torch.multinomial(x_mask, 1).view(-1)
 
                     for k in range(1, horizon):
-                        if applying_mask_intermeidate_temperature:
+                        if applying_mask_intermediate_temperature:
                             x_next_masked_prob = self.A[xt[:, k - 1].view(-1)] * (pred_prob_[:, k]) * ((self.max_T - t) / self.max_T) + pred_prob_[:, k] * ( t / self.max_T)
                         else: ## Hard topology on every xt
                             x_next_masked_prob = self.A[xt[:, k - 1].view(-1)] * (pred_prob_[:, k])  # b * v
                         random = x_next_masked_prob.sum(-1, keepdim=False) < 0.000001
                         x_next_masked_prob[random] = 1.
-                        if applying_mask_intermeidate_temperature:
+                        if applying_mask_intermediate_temperature:
                             x_next_masked_prob = self.A[xt[:, k - 1].view(-1)] * x_next_masked_prob * ((self.max_T - t) / self.max_T) + x_next_masked_prob * (t / self.max_T)
                         else:  ## Hard topology on every xt
                             x_next_masked_prob = self.A[xt[:, k - 1].view(-1)] * x_next_masked_prob  # b * v

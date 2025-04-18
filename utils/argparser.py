@@ -57,7 +57,7 @@ def get_argparser() -> argparse.ArgumentParser:
     # eval config
     parser.add_argument("-eval_num", type=int, help="evaluation sample number, int", default=1000)
     parser.add_argument("-applying_mask_intermediate", action="store_true", help="Apply mask intermediate")
-    parser.add_argument("-applying_mask_intermeidate_temperature", action="store_true", help="applying_mask_intermeidate_temperature")
+    parser.add_argument("-applying_mask_intermediate_temperature", action="store_true", help="applying_mask_intermediate_temperature")
     parser.add_argument("-save_name", type=str, help="save name", default="")
 
     parser.add_argument("-min_lat", type=float, help="min_lat", default=-1)
