@@ -243,7 +243,11 @@ class Restorer(nn.Module):
                 random = x_next_masked_prob.sum(-1, keepdim=False) < 0.000001
                 x_next_masked_prob[random] = 1.
                 x_next_masked_prob = self.A[x[:, k - 1].view(-1)] * x_next_masked_prob
-                x[:, k] = torch.multinomial(x_next_masked_prob, 1).view(-1)
+                try:
+                    x[:, k] = torch.multinomial(x_next_masked_prob, 1).view(-1)
+                except:
+                    import pdb
+                    pdb.set_trace()
             x_list = [x[k][:lengths[k]].cpu().tolist() for k in range(n_samples)]
             if ret_trace:
                 reverse_trace[0] = x_list
