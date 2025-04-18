@@ -114,6 +114,56 @@ class TrajFastDataset(Dataset):
         choices = np.random.choice(a=self.total_len, size=num, replace=False).tolist() # org : replace = False / 비복원추출
         return [self.__getitem__(c) for c in choices]
 
+    def edit(self, removal=None, is_random=False): # removal : {"nodes": [xxx, yyy, zzz], "edges": [[XXX, YYY], [ZZZ, WWW]], "regions" : list of [[min_lat, max_lat], [min_lng, max_lng]]}
+        if (removal is None) and (not is_random):
+            exit("Please check edit in dataset.py")
+
+        if is_random:
+            size = 0.01
+            min_lat, max_lat = 999, -999
+            min_lng, max_lng = 999, -999
+            for node, data in self.G.nodes(data=True):
+                lat, lng = data.get("lat"), data.get("lng")
+
+                if lat < min_lat:
+                    min_lat = lat
+                if lat > max_lat:
+                    max_lat = lat
+                if lng < min_lng:
+                    min_lng = lng
+                if lng > max_lng:
+                    max_lng = lng
+            # print (min_lat, max_lat, max_lat - min_lat) # 36.3270948 36.3699729 0.04287810000000292
+            # print (min_lng, max_lng, max_lng - min_lng) # 127.3170026 127.3692761 0.05227349999999831
+            start_lat, start_lng = np.random.uniform(min_lat, max_lat), np.random.uniform(min_lng, max_lng)
+
+            removal_region = [[start_lat, start_lat+size], [start_lng, start_lng+size]]
+            print ("Random removal region: ", removal_region)
+
+            removal = {"regions": [removal_region]}
+
+        new_A = self.A.clone().detach()
+
+        if "nodes" in removal.keys():
+            for node in removal["nodes"]:
+                new_A[node, :], new_A[:, node] = 0, 0
+
+        if "edges" in removal.keys():
+            for node1, node2 in removal["edges"]:
+                new_A[node1, node2], new_A[node2, node1] = 0, 0
+
+        if "regions" in removal.keys():
+            for node, data in self.G.nodes(data=True):
+                lat, lng = data.get("lat"), data.get("lng")
+                for lat_range, lng_range in removal["regions"]:
+                    if lat_range[0] <= lat <= lat_range[1] and lng_range[0] <= lng <= lng_range[1]:
+                        new_A[node, :], new_A[:, node] = 0, 0
+                        break
+
+        self.A.data = new_A.data
+
+        assert torch.all(self.A.transpose(0, 1) == self.A)
+
 
 class TrajFastDataset_SimTime(Dataset):
     def __init__(self, city, dates, path, device, is_pretrain):

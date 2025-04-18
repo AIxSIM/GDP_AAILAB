@@ -59,5 +59,10 @@ def get_argparser() -> argparse.ArgumentParser:
     parser.add_argument("-applying_mask_intermediate", action="store_true", help="Apply mask intermediate")
     parser.add_argument("-applying_mask_intermeidate_temperature", action="store_true", help="applying_mask_intermeidate_temperature")
     parser.add_argument("-save_name", type=str, help="save name", default="")
+
+    parser.add_argument("-min_lat", type=float, help="min_lat", default=-1)
+    parser.add_argument("-max_lat", type=float, help="max_lat", default=-1)
+    parser.add_argument("-min_lng", type=float, help="min_lng", default=-1)
+    parser.add_argument("-max_lng", type=float, help="max_lng", default=-1)
     
     return parser

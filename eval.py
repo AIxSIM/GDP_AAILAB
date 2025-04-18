@@ -49,6 +49,10 @@ if __name__ == "__main__":
         model.applying_mask_intermediate = args.applying_mask_intermediate
         model.applying_mask_intermeidate_temperature = args.applying_mask_intermeidate_temperature
 
+        if args.min_lat != -1:
+            model.edit(removal={"regions" : [[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]},
+                       G=dataset.G)
+
         # gen_paths: list of lists (len: eval_num, element: list of nodes)
         # real_paths: list of lists (len: eval_num, element: list of nodes)
         gen_paths = model.sample(args.eval_num)
