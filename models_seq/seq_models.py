@@ -214,7 +214,11 @@ class Restorer(nn.Module):
                 if applying_mask_intermediate:
                     pred_prob_ = rearrange(pred_probs, "(b h) c -> b h c", b=n_samples)
                     xt = torch.zeros([n_samples, horizon]).long().to(self.device)
-                    xt[:, 0] = torch.multinomial(pred_prob_[:, 0], 1).view(-1)
+
+                    x_mask = pred_prob_[:, 0].clone()
+                    if (self.A.sum(dim=1) == 0).sum() != 0:
+                        x_mask[:, self.A.sum(dim=1) == 0] = 0.
+                    xt[:, 0] = torch.multinomial(x_mask, 1).view(-1)
 
                     for k in range(1, horizon):
                         if applying_mask_intermeidate_temperature:
