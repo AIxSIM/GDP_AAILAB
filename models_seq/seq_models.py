@@ -236,7 +236,11 @@ class Restorer(nn.Module):
                     reverse_trace[t] = [xt[k][:lengths[k]].cpu().tolist() for k in range(n_samples)]
 
             x = torch.zeros_like(xt).long().to(self.device)
-            x[:, 0] = torch.multinomial(x0_pred_probs[:, 0], 1).view(-1)
+
+            x_mask = x0_pred_probs[:, 0].clone()
+            if (self.A.sum(dim=1)==0).sum() != 0:
+                x_mask[self.A.sum(dim=1)==0] = 0.
+            x[:, 0] = torch.multinomial(x_mask, 1).view(-1)
 
             for k in range(1, horizon):
                 x_next_masked_prob = self.A[x[:, k - 1].view(-1)] * (x0_pred_probs[:, k]) # b * v
