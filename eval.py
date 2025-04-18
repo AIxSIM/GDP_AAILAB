@@ -50,7 +50,7 @@ if __name__ == "__main__":
         model.applying_mask_intermeidate_temperature = args.applying_mask_intermeidate_temperature
 
         if args.min_lat != -1:
-            model.edit(removal={"regions" : [[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]},
+            model.edit(removal={"regions" : [[[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]]},
                        G=dataset.G)
 
         # gen_paths: list of lists (len: eval_num, element: list of nodes)
