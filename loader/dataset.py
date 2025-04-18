@@ -159,6 +159,7 @@ class TrajFastDataset(Dataset):
                     if lat_range[0] <= lat <= lat_range[1] and lng_range[0] <= lng <= lng_range[1]:
                         new_A[node, :], new_A[:, node] = 0, 0
                         break
+        print(f'remove {(self.A.data - new_A.data).sum()/2} pairs.')
 
         assert torch.all(new_A.transpose(0, 1) == new_A)
 

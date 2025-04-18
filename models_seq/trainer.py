@@ -35,6 +35,7 @@ class Trainer:
         # randomly removed edge for new A' and defined sampler that only sample paths that satisfy A'
 
         if remove_region is not None:
+            print(f'remove {remove_region}')
             A_new = self.dataset.edit(removal={"regions": remove_region}, direct_change=False)
             torch.save(A_new, join(self.model_path, f"{self.model_name}_{remove_region}_A_new.pt"))
             train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
