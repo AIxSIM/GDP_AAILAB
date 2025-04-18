@@ -239,7 +239,7 @@ class Restorer(nn.Module):
 
             x_mask = x0_pred_probs[:, 0].clone()
             if (self.A.sum(dim=1)==0).sum() != 0:
-                x_mask[self.A.sum(dim=1)==0] = 0.
+                x_mask[:, self.A.sum(dim=1)==0] = 0.
             x[:, 0] = torch.multinomial(x_mask, 1).view(-1)
 
             for k in range(1, horizon):
