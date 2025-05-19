@@ -98,11 +98,22 @@ class Evaluator:
         average_mse = 0.
         for key in gen_path_count.keys():
             if key in orig_path_count:
-                value1 = gen_path_count[key] / len(planned_paths_coors)
-                value2 = orig_path_count[key] / len(orig_path_count)
-                average = (value1 - value2) ** 2
+                value1 = gen_path_count[key]#  / len(planned_paths_coors)
+                value2 = orig_path_count[key]#   / len(orig_path_count)
+                average = max((value1 - value2), (value2 - value1))
+                print(average)
                 average_mse += average
         average_mse = average_mse / len(gen_path_count)
-        print(average_mse)
+        print('average_mse :', average_mse)
+
+        x = np.array([gen_path_count[key] for key in gen_path_count if key in orig_path_count])
+        y = np.array([orig_path_count[key] for key in gen_path_count if key in orig_path_count])
+
+        mean_y = np.mean(y)
+        ss_total = np.sum((y - mean_y) ** 2)
+        ss_residual = np.sum((y - x) ** 2)
+        r_squared = 1 - (ss_residual / ss_total)
+        print('r_squared :', r_squared)
+
         return average_mse
 
