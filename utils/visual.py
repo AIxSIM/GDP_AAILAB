@@ -68,4 +68,6 @@ def draw_heatmap(locations_series, html_path, colors=None, no_points=False):
     if not os.path.exists(html_path):
         os.makedirs(os.path.dirname(html_path), exist_ok=True)
     m.save(html_path)
+
+    return path_counts
     
