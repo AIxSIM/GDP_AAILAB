@@ -64,5 +64,7 @@ def get_argparser() -> argparse.ArgumentParser:
     parser.add_argument("-max_lat", type=float, help="max_lat", default=-1)
     parser.add_argument("-min_lng", type=float, help="min_lng", default=-1)
     parser.add_argument("-max_lng", type=float, help="max_lng", default=-1)
+
+    parser.add_argument("-batch_traj_num", type=int, help="batch_traj_num", default=200)
     
     return parser
