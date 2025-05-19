@@ -95,5 +95,14 @@ class Evaluator:
         gen_path_count = draw_heatmap(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * len(planned_paths_coors), no_points=False)
         orig_paths_coors = self._convert_from_id_to_lat_lng(self.real_paths, self.sim_time)
         orig_path_count = draw_heatmap(orig_paths_coors, f"./figs/seq_real_{suffix}.html", colors=["blue"] * len(orig_paths_coors), no_points=False)
-        import pdb
-        pdb.set_trace()
+        average_mse = 0.
+        for key in gen_path_count.keys():
+            if key in orig_path_count:
+                value1 = gen_path_count[key] / len(planned_paths_coors)
+                value2 = orig_path_count[key] / len(orig_path_count)
+                average = (value1 - value2) ** 2
+                average_mse += average
+        average_mse = average_mse / len(gen_path_count)
+        print(average_mse)
+        return average_mse
+
