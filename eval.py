@@ -6,6 +6,7 @@ from utils.argparser import get_argparser
 from utils.evaluate import Evaluator
 import numpy as np
 import random
+import time
 
 if __name__ == "__main__":
     torch.manual_seed(1)
@@ -55,7 +56,9 @@ if __name__ == "__main__":
 
         # gen_paths: list of lists (len: eval_num, element: list of nodes)
         # real_paths: list of lists (len: eval_num, element: list of nodes)
+        start_time = time.time()
         gen_paths = model.sample(args.eval_num, args.batch_traj_num)
+        print(f'Sampling time: {time.time() - start_time} seconds')
         real_paths = dataset.get_real_paths(args.eval_num)
 
         torch.save(gen_paths, join(args.model_path, f"{args.model_name}_{args.save_name}_gen_paths.pth"))
