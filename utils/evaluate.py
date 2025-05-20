@@ -91,6 +91,8 @@ class Evaluator:
         return path_coors
 
     def eval(self, suffix):
+        import pdb
+        pdb.set_trace()
         planned_paths_coors = self._convert_from_id_to_lat_lng(self.gen_paths, False)
         gen_path_count = draw_heatmap(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * len(planned_paths_coors), no_points=False)
         orig_paths_coors = self._convert_from_id_to_lat_lng(self.real_paths, self.sim_time)
