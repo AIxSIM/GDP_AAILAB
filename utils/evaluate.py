@@ -106,7 +106,7 @@ class Evaluator:
         # path draw
         idx_for_analysis = [189, 346, 414, 434, 435, 458, 459, 473, 492, 532, 650, 655, 662, 718, 725, 743, 764, 765, 773, 800, 812, 878, 895, 923, 939, 953, 964, 971, 984, 987, 989, 995, 1000, 1070, 1073, 1094, 1106, 1108, 1128, 1131, 1136, 1167, 1176, 1186, 1192, 1193, 1240, 1250, 1274, 1276, 1302, 1312, 1319, 1325, 1333, 1353, 1359, 1366, 1371, 1381, 1405, 1410, 1451, 1459, 1463, 1472, 1491, 1494, 1512, 1521, 1537, 1544, 1551, 1555, 1578, 1606, 1610, 1629, 1661, 1666, 1672, 1706, 1719, 1743, 1763, 1775, 1794, 1797, 1815, 1818, 1819, 1845, 1877, 1907, 1923, 1929, 1947, 1950, 1951, 1963]
         filtered_paths = [self.gen_paths[i] for i in idx_for_analysis]
-        for i in idx_for_analysis:
+        for i in range(len(idx_for_analysis)):
             draw_paths([filtered_paths[i]], self.dataset.G, f"./figs_path_analysis/PATH_{i}_seq_gen_{suffix}.html")
 
         planned_paths_coors = self._convert_from_id_to_lat_lng(self.gen_paths, False)
