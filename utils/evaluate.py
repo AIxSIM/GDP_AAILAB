@@ -2,7 +2,7 @@ from typing import Any
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
-from utils.visual import draw_heatmap
+from utils.visual import draw_heatmap, draw_paths
 
 class Evaluator:
     def __init__(self, real_paths, gen_paths, model, n_vertex, dataset, name="e1", sim_time=False) -> None:
@@ -91,8 +91,24 @@ class Evaluator:
         return path_coors
 
     def eval(self, suffix):
-        import pdb
-        pdb.set_trace()
+
+        # x_min, x_max = 36.361, 36.362
+        # y_min, y_max = 127.3575, 127.3585
+        #
+        # # Finding the path index and coordinate index
+        # indices_in_range = []
+        # for path_index, path in enumerate(planned_paths_coors):
+        #     for coord_index, (x, y) in enumerate(path):
+        #         if x_min <= x <= x_max and y_min <= y <= y_max:
+        #             indices_in_range.append((path_index, coord_index))
+        # unique_path_indices = sorted(set([path_index for path_index, _ in indices_in_range]))
+
+        # path draw
+        idx_for_analysis = [189, 346, 414, 434, 435, 458, 459, 473, 492, 532, 650, 655, 662, 718, 725, 743, 764, 765, 773, 800, 812, 878, 895, 923, 939, 953, 964, 971, 984, 987, 989, 995, 1000, 1070, 1073, 1094, 1106, 1108, 1128, 1131, 1136, 1167, 1176, 1186, 1192, 1193, 1240, 1250, 1274, 1276, 1302, 1312, 1319, 1325, 1333, 1353, 1359, 1366, 1371, 1381, 1405, 1410, 1451, 1459, 1463, 1472, 1491, 1494, 1512, 1521, 1537, 1544, 1551, 1555, 1578, 1606, 1610, 1629, 1661, 1666, 1672, 1706, 1719, 1743, 1763, 1775, 1794, 1797, 1815, 1818, 1819, 1845, 1877, 1907, 1923, 1929, 1947, 1950, 1951, 1963]
+        filtered_paths = [self.gen_paths[i] for i in idx_for_analysis]
+        for i in idx_for_analysis:
+            draw_paths([filtered_paths[i]], self.dataset.G, f"./figs_path_analysis/PATH_{i}_seq_gen_{suffix}.html")
+
         planned_paths_coors = self._convert_from_id_to_lat_lng(self.gen_paths, False)
         gen_path_count = draw_heatmap(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * len(planned_paths_coors), no_points=False)
         orig_paths_coors = self._convert_from_id_to_lat_lng(self.real_paths, self.sim_time)
