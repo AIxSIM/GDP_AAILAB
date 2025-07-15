@@ -260,6 +260,7 @@ class Trainer_disc:
             test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=False)
         elif remove_random:
             A_new = self.dataset.edit(is_random=True, direct_change=False)
+            torch.save(A_new, join(self.model_path, f"{self.model_name}_random_A_new.pt"))
             train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
             test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=False)
         else:
