@@ -61,7 +61,7 @@ if __name__ == "__main__":
     else:
         remove_region = None
 
-    trainer.train(args.n_epoch, args.bs, args.lr, remove_region=remove_region)
+    trainer.train(args.n_epoch, args.bs, args.lr, remove_region=remove_region, remove_random=True)
     model.eval()
     torch.save(model, join(args.model_path, f"{args.model_name}.pth"))
     model.eval()

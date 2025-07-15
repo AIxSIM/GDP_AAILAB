@@ -242,7 +242,7 @@ class Trainer_disc:
         self.model_path = model_path
         self.model_name = model_name
 
-    def train(self, n_epoch, batch_size, lr, remove_region=None):
+    def train(self, n_epoch, batch_size, lr, remove_region=None, remove_random=False):
         torch.autograd.set_detect_anomaly(True)
         optimizer = torch.optim.Adam(self.model.parameters(), lr)
 
@@ -258,9 +258,17 @@ class Trainer_disc:
             torch.save(A_new, join(self.model_path, f"{self.model_name}_{remove_region}_A_new.pt"))
             train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
             test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=False)
+        elif remove_random:
+            A_new = self.dataset.edit(is_random=True, direct_change=False)
+            train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
+            test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=False)
         else:
             train_sampler = None
             test_sampler = None
+            A_new = self.dataset.A
+
+        import pdb
+        pdb.set_trace()
 
         trainloader_A = DataLoader(train_dataset, batch_sampler=None,
                                     collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])

@@ -611,16 +611,16 @@ class Discriminator_module(nn.Module):
         xt_padded = torch.cat((orgxt_padded, newxt_padded), dim=0)
 
         disc_logits = self.discriminate(xt_padded.to(self.model_device), lengths.to(self.model_device),
-                                        ts.to(self.model_device))
+                                        ts.to(self.model_device), adj_matrix)
         loss = self.criterion(disc_logits, labels)
 
         return loss
 
-    def discriminate(self, xt_padded, lengths=None, ts=None):
+    def discriminate(self, xt_padded, lengths=None, ts=None, adj_matrix=None):
         # xt_padded: b, h value is vertex number
         # ts: b value is time for each
         batch_size = xt_padded.shape[0]
         if ts is None:
             ts = torch.Tensor([self.max_T]).repeat(batch_size).to(self.device)
-        x0_pred_logits = self.disc_model(xt_padded, lengths, ts)
+        x0_pred_logits = self.disc_model(xt_padded, lengths, ts, adj_matrix)
         return x0_pred_logits
