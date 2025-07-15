@@ -604,8 +604,8 @@ class Discriminator_module(nn.Module):
         # uniformly choose t
         ts = torch.randint(1, self.max_T + 1, [batch_size]).to(self.device)
 
-        orgx_t = self.destroyer.diffusion(orgxs, ts, ret_distr=False)
-        newx_t = self.destroyer.diffusion(newxs, ts, ret_distr=False)
+        orgx_t = self.destroyer.diffusion(orgxs, ts[:batch_size_A], ret_distr=False)
+        newx_t = self.destroyer.diffusion(newxs, ts[batch_size_A:], ret_distr=False)
         x_t = torch.cat((orgx_t, newx_t), dim=0)
         xt_padded = pad_sequence(x_t, batch_first=True, padding_value=0).long()
         # xs_padded = pad_sequence(xs, batch_first=True, padding_value=0).long()
