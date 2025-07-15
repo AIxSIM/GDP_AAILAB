@@ -80,7 +80,7 @@ class Discriminator(nn.Module):
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=5, stride=2, device=device),
             nn.ReLU(),
-            nn.AdaptiveAvgPool2d((1, 1), device=device)
+            nn.AdaptiveAvgPool2d((1, 1))
         )
         self.adj_mlp = nn.Linear(64, time_dim, device=device)
 
