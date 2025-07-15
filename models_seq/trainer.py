@@ -40,6 +40,9 @@ class Trainer:
             torch.save(A_new, join(self.model_path, f"{self.model_name}_{remove_region}_A_new.pt"))
             train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
             test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=False)
+        else:
+            train_sampler = None
+            test_sampler = None
 
         trainloader = DataLoader(train_dataset, batch_sampler=train_sampler,
                                     collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
