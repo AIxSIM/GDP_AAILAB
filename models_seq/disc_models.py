@@ -117,9 +117,9 @@ class Discriminator(nn.Module):
         # disc parts
         self.pool = nn.AdaptiveAvgPool1d(1)
         self.classifier = nn.Sequential(
-            nn.Linear(mid_dim, mid_dim),
+            nn.Linear(mid_dim, mid_dim, device=device),
             nn.ReLU(),
-            nn.Linear(mid_dim, 1)
+            nn.Linear(mid_dim, 1, device=device)
         )
 
     def forward(self, xt_padded, lengths, t, adj_matrix):
