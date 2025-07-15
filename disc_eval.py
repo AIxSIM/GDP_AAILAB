@@ -42,6 +42,8 @@ if __name__ == "__main__":
         print(f"vertex: {n_vertex}")
 
     if args.method != "plan":
+        import pdb
+        pdb.set_trace()
         model = torch.load(join(args.model_path, f"{args.model_name}.pth"), map_location=device)
         disc = torch.load(join(args.disc_path, f"{args.disc_name}.pth"), map_location=device)
         model.device = device
