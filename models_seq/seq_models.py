@@ -588,8 +588,6 @@ class Discriminator_module(nn.Module):
 
     def forward(self, orgxs, newxs, orgA, newA):
         # xs: list of tensors of labels
-        import pdb
-        pdb.set_trace()
         batch_size_A = len(orgxs)
         batch_size_new = len(newxs)
         batch_size = batch_size_A + batch_size_new
@@ -608,9 +606,7 @@ class Discriminator_module(nn.Module):
 
         orgx_t = self.destroyer.diffusion(orgxs, ts[:batch_size_A], ret_distr=False)
         newx_t = self.destroyer.diffusion(newxs, ts[batch_size_A:], ret_distr=False)
-        orgxt_padded = pad_sequence(orgx_t, batch_first=True, padding_value=0).long()
-        newxt_padded = pad_sequence(newx_t, batch_first=True, padding_value=0).long()
-        xt_padded = torch.cat((orgxt_padded, newxt_padded), dim=0)
+        xt_padded = pad_sequence(orgx_t+newx_t, batch_first=True, padding_value=0).long()
 
         A_expanded = orgA.unsqueeze(0).repeat(batch_size_A, 1, 1).float()
         A_new_expanded = newA.unsqueeze(0).repeat(batch_size_new, 1, 1).float()

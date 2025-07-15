@@ -125,6 +125,8 @@ class Discriminator(nn.Module):
     def forward(self, xt_padded, lengths, t, adj_matrix):
         # xt_padded: shape b, h, each is a xt label
         # t: shape b
+        import pdb
+        pdb.set_trace()
         t = self.time_mlp(t)
         adj_feature = self.adj_cnn(adj_matrix.unsqueeze(1))
         adj_feature = self.adj_cnn(adj_feature.view(adj_feature.size(0), -1))
