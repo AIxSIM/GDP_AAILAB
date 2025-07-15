@@ -54,12 +54,14 @@ if __name__ == "__main__":
         model.applying_mask_intermediate = args.applying_mask_intermediate
         model.applying_mask_intermediate_temperature = args.applying_mask_intermediate_temperature
 
-        if args.min_lat != -1:
-            model.edit(removal={"regions" : [[[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]]},
-                       G=dataset.G, direct_change=True)
         if args.newA_file != 'None':
             new_A = torch.load(args.newA_file, map_location=device)
-            destroyer_new = Destroyer(new_A, model.destroyer.betas, args.max_T, device)
+        elif args.min_lat != -1:
+            new_A = model.edit(removal={"regions" : [[[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]]},
+                       G=dataset.G, direct_change=False)
+        else:
+            raise NotImplementedError
+        destroyer_new = Destroyer(new_A, model.destroyer.betas, args.max_T, device)
 
         # gen_paths: list of lists (len: eval_num, element: list of nodes)
         # real_paths: list of lists (len: eval_num, element: list of nodes)
