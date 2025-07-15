@@ -140,6 +140,9 @@ class Discriminator(nn.Module):
         x = self.mid_attn(x, None)
         x = self.mid_block2(x, t)
 
+        import pdb
+        pdb.set_trace()
+
         x = x.transpose(1, 2)
         x = self.pool(x)
         x = self.classifier(x).squeeze(-1)
