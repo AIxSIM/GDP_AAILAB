@@ -66,5 +66,9 @@ def get_argparser() -> argparse.ArgumentParser:
     parser.add_argument("-max_lng", type=float, help="max_lng", default=-1)
 
     parser.add_argument("-batch_traj_num", type=int, help="batch_traj_num", default=200)
+
+    parser.add_argument("-disc_path", type=str, help="discriminator path", default="./sets_disc")
+    parser.add_argument("-disc_name", type=str, help="discriminator name")
+    parser.add_argument("-newA_file", type=str, help="adjacency matrix path", default="None")
     
     return parser
