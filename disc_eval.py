@@ -70,13 +70,13 @@ if __name__ == "__main__":
         print(f'Sampling time: {time.time() - start_time} seconds')
         real_paths = dataset.get_real_paths(args.eval_num)
 
-        torch.save(gen_paths, join(args.model_path, f"{args.model_name}_{args.save_name}_gen_paths.pth"))
+        torch.save(gen_paths, join(args.model_path, f"DISC_{args.model_name}_{args.save_name}_gen_paths.pth"))
         evaluator = Evaluator(real_paths, gen_paths, model, n_vertex, dataset=dataset,
-                              name=join(args.res_path, f"{args.model_name}_{args.save_name}_pure_gen"), sim_time=args.sim_time)
-        evaluator.eval(suffix=f"{args.model_name}_{args.save_name}")
+                              name=join(args.res_path, f"DISC_{args.model_name}_{args.save_name}_pure_gen"), sim_time=args.sim_time)
+        evaluator.eval(suffix=f"DISC_{args.model_name}_{args.save_name}")
         res = evaluator.eval_all()
         print(res)
-        with open(join(args.res_path, f"{args.model_name}_{args.save_name}.res"), "w") as f:
+        with open(join(args.res_path, f"DISC_{args.model_name}_{args.save_name}.res"), "w") as f:
             f.writelines(str(res))
 
     if args.method == "plan":
