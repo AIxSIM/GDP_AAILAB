@@ -608,10 +608,7 @@ class Discriminator_module(nn.Module):
         newx_t = self.destroyer.diffusion(newxs, ts[batch_size_A:], ret_distr=False)
         orgxt_padded = pad_sequence(orgx_t, batch_first=True, padding_value=0).long()
         newxt_padded = pad_sequence(newx_t, batch_first=True, padding_value=0).long()
-        x_t = torch.cat((orgxt_padded, newxt_padded), dim=0)
-        # xs_padded = pad_sequence(xs, batch_first=True, padding_value=0).long()
-        # horizon = xt_padded.shape[1]
-        # ts_padded = ts.view(-1, 1).repeat(1, horizon)
+        xt_padded = torch.cat((orgxt_padded, newxt_padded), dim=0)
 
         disc_logits = self.discriminate(xt_padded.to(self.model_device), lengths.to(self.model_device),
                                         ts.to(self.model_device))
