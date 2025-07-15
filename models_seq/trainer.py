@@ -234,6 +234,109 @@ class CustomPathBatchSampler(Sampler):
         return len(self.dataset) // self.batch_size
 
 
+class Trainer_disc:
+    def __init__(self, model: nn.Module, dataset, model_path, model_name):
+        self.model = model
+        self.device = model.device
+        self.dataset = dataset
+        self.model_path = model_path
+        self.model_name = model_name
+
+    def train(self, n_epoch, batch_size, lr, remove_region=None):
+        torch.autograd.set_detect_anomaly(True)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr)
+
+        # split train test
+        train_num = int(0.8 * len(self.dataset))
+        train_dataset, test_dataset = random_split(self.dataset, [train_num , len(self.dataset) - train_num])
+
+        # randomly removed edge for new A' and defined sampler that only sample paths that satisfy A'
+
+        if remove_region is not None:
+            print(f'remove {remove_region}')
+            A_new = self.dataset.edit(removal={"regions": remove_region}, direct_change=False)
+            torch.save(A_new, join(self.model_path, f"{self.model_name}_{remove_region}_A_new.pt"))
+            train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
+            test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=False)
+        else:
+            train_sampler = None
+            test_sampler = None
+
+        trainloader_A = DataLoader(train_dataset, batch_sampler=None,
+                                    collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
+        trainloader_new = DataLoader(train_dataset, batch_sampler=train_sampler,
+                                    collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
+        testloader_A = DataLoader(test_dataset, batch_sampler=None,
+                                collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
+        testloader_new = DataLoader(test_dataset, batch_sampler=test_sampler,
+                                collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
+        self.model.train()
+        iter, train_loss_avg = 0, 0
+        kl_loss_avg, ce_loss_avg, con_loss_avg = 0, 0, 0
+        try:
+            for epoch in range(n_epoch):
+                for xs, newxs in zip(trainloader_A, trainloader_new):
+                    loss = self.model(xs, newxs)
+                    train_loss_avg += loss.item()
+                    optimizer.zero_grad()
+                    loss.backward()
+                    # TODO: clip norm
+                    torch.nn.utils.clip_grad_norm(self.model.parameters(), max_norm=1.0)
+                    optimizer.step()
+                    iter += 1
+                    if iter % 100 == 0 or iter == 1:
+                        # eval test
+                        denom = 1 if iter == 1 else 100
+                        # test_kl, test_ce, test_con = next(self.eval_test(testloader))
+                        # test_loss = test_kl + test_ce + test_con
+                        # print(f"e: {epoch}, i: {iter}, train loss: {train_loss_avg / denom: .4f}, (kl: {kl_loss_avg / denom: .4f}, ce: {ce_loss_avg / denom: .4f}, co: {con_loss_avg / denom: .4f}), test loss: {test_loss: .4f}, (kl: {test_kl: .4f}, ce: {test_ce: .4f}, co: {test_con: .4f})")
+                        print(f"e: {epoch}, i: {iter}, train loss: {train_loss_avg / denom: .4f}")
+                        train_loss_avg = 0.
+                model_name = f"{self.model_name}_iter_{iter}.pth"
+                torch.save(self.model, join(self.model_path, model_name))
+        except KeyboardInterrupt as E:
+            print("Training interruptted, begin saving...")
+            self.model.eval()
+            model_name = f"tmp_iter_{iter}.pth"
+        # save
+        self.model.eval()
+        # model_name = f"finished_{iter}.pth"
+        # torch.save(self.model, join(self.model_path, model_name))
+        # print("save finished!")
+
+    def train_gmm(self, gmm_samples, n_comp):
+        gmm = GaussianMixture(n_components=n_comp, covariance_type="tied")
+        gmm_samples = min(len(self.dataset), gmm_samples)
+        lenghts = np.array([len(self.dataset[k]) for k in range(gmm_samples)]).reshape(-1, 1)
+        gmm.fit(lenghts)
+        self.model.gmm = gmm
+
+
+    def eval_test(self, test_loader):
+        with torch.no_grad():
+            for txs in cycle(test_loader):
+                kl_loss, ce_loss, test_con = self.model(txs)
+                yield (kl_loss.item(), ce_loss.item(), test_con.item())
+
+    def drop_edges_symmetric(self, A, drop_ratio=0.1):
+        A = A.clone().cpu()
+        N = A.size(0)
+
+        row_idx, col_idx = torch.triu_indices(N, N, offset=1)
+        edge_mask = A[row_idx, col_idx] == 1
+        edge_indices = torch.stack([row_idx[edge_mask], col_idx[edge_mask]], dim=0)
+
+        num_edges = edge_indices.size(1)
+        num_to_drop = int(num_edges * drop_ratio)
+
+        perm = torch.randperm(num_edges)
+        edges_to_drop = edge_indices[:, perm[:num_to_drop]]
+
+        A[edges_to_drop[0], edges_to_drop[1]] = 0
+        A[edges_to_drop[1], edges_to_drop[0]] = 0
+
+        return A
+
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")    
     max_T = 100

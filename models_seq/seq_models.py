@@ -584,28 +584,36 @@ class Discriminator_module(nn.Module):
         self.applying_mask_intermediate = False
         self.applying_mask_intermediate_temperature = False
 
-    def forward(self, xs):
+        self.criterion = nn.BCEWithLogitsLoss()
+
+    def forward(self, orgxs, newxs):
         # xs: list of tensors of labels
-        batch_size = len(xs)
-        if batch_size == 0:
+        batch_size_A = len(orgxs)
+        batch_size_new = len(newxs)
+        batch_size = batch_size_A + batch_size_new
+        xs = torch.cat((orgxs, newxs), dim=0)
+        if batch_size_A == 0:
             import pdb
             pdb.set_trace()
         lengths = torch.Tensor([x.shape[0] for x in xs]).long().to(self.device)
+
+        # discriminator label
+        labels_orgxs = torch.zeros(batch_size_A, dtype=torch.float, device=self.device)
+        labels_newxs = torch.ones(batch_size_new, dtype=torch.float, device=self.device)
+        labels = torch.cat([labels_orgxs, labels_newxs], dim=0)  # shape: (9,)
 
         # uniformly choose t
         ts = torch.randint(1, self.max_T + 1, [batch_size]).to(self.device)
 
         x_t = self.destroyer.diffusion(xs, ts, ret_distr=False)
         xt_padded = pad_sequence(x_t, batch_first=True, padding_value=0).long()
-        xs_padded = pad_sequence(xs, batch_first=True, padding_value=0).long()
-        horizon = xt_padded.shape[1]
-        ts_padded = ts.view(-1, 1).repeat(1, horizon)
+        # xs_padded = pad_sequence(xs, batch_first=True, padding_value=0).long()
+        # horizon = xt_padded.shape[1]
+        # ts_padded = ts.view(-1, 1).repeat(1, horizon)
 
         disc_logits = self.discriminate(xt_padded.to(self.model_device), lengths.to(self.model_device),
                                         ts.to(self.model_device))
-        disc_probs = F.softmax(disc_logits, dim=-1)
-
-        loss = None
+        loss = self.criterion(disc_logits, labels)
 
         return loss
 

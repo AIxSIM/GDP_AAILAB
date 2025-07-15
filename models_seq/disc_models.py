@@ -75,6 +75,15 @@ class Discriminator(nn.Module):
             nn.Mish(), 
             nn.Linear(4 * time_dim, time_dim, device=device)
         )
+        self.adj_conv = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=5, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=5, stride=2),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d((1, 1))
+        )
+        self.adj_cnn = nn.Linear(64, time_dim)
+
         # n_vertex denotes <end>,  n_vertex + 1 denotes <padding>
         if pretrain_path is not None:
             node2vec = pickle.load(open(pretrain_path, "rb"))
@@ -105,26 +114,22 @@ class Discriminator(nn.Module):
         self.mid_attn = Residual(LinearAttention(mid_dim, device))
         self.mid_block2 = XTResBlock(mid_dim, time_dim, mid_dim, device)
 
-        # up blocks
-        self.up_blocks = []
-        for k, (out_dim, in_dim) in enumerate(reversed(in_out_dim[1:])):
-            self.up_blocks.append(UnetBlock(
-                in_dim * 2, time_dim, out_dim, device, 
-                down_up="up", last=(k == n_reso - 1)))
-        
-        # final parts
-        self.final_conv = nn.Sequential(
-            Conv1dBlock(in_out_dim[1][0], dims[0], kernel_size=5),
-            Rearrange("b h c -> b c h"), 
-            nn.Conv1d(dims[0], n_vertex, 1, device=device),
-            Rearrange("b c h -> b h c")
-        ).to(device)
-        
+        # disc parts
+        self.pool = nn.AdaptiveAvgPool1d(1)
+        self.classifier = nn.Sequential(
+            nn.Linear(mid_dim, mid_dim),
+            nn.ReLU(),
+            nn.Linear(mid_dim, 1)
+        )
 
-    def forward(self, xt_padded, lengths, t):
+    def forward(self, xt_padded, lengths, t, adj_matrix):
         # xt_padded: shape b, h, each is a xt label
         # t: shape b
         t = self.time_mlp(t)
+        adj_feature = self.adj_cnn(adj_matrix.unsqueeze(1))
+        adj_feature = self.adj_cnn(adj_feature.view(adj_feature.size(0), -1))
+        t = t + adj_feature
+
         x = self.x_embedding(xt_padded)
         hiddens = []
         for k, down_block in enumerate(self.down_blocks):
@@ -135,11 +140,8 @@ class Discriminator(nn.Module):
         x = self.mid_attn(x, None)
         x = self.mid_block2(x, t)
 
-        import pdb
-        pdb.set_trace()
-        
-        for up_block in self.up_blocks:
-            x = torch.cat((x, hiddens.pop()), dim=-1)
-            x, _ = up_block(x, None, t)
-        x = self.final_conv(x)
+        x = x.transpose(1, 2)
+        x = self.pool(x)
+        x = self.classifier(x).squeeze(-1)
+
         return x

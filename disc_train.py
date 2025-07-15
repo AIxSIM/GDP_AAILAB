@@ -40,7 +40,7 @@ if __name__ == "__main__":
     # set model
     from models_seq.seq_models import Destroyer, Discriminator_module
     from models_seq.disc_models import Discriminator
-    from models_seq.trainer import Trainer, Trainer_SimTime
+    from models_seq.trainer import Trainer_disc
 
     suffix = args.d_name
 
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     disc_model = Discriminator(dataset.n_vertex, x_emb_dim=args.x_emb_dim, dims=dims, device=device,
                                hidden_dim=args.hidden_dim, pretrain_path=pretrain_path)
     model = Discriminator_module(disc_model, destroyer, device)
-    trainer = Trainer(model, dataset, args.model_path, args.model_name)
+    trainer = Trainer_disc(model, dataset, args.model_path, args.model_name)
 
     trainer.train_gmm(gmm_samples=args.gmm_samples, n_comp=args.gmm_comp)
 
