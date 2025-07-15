@@ -591,11 +591,10 @@ class Discriminator_module(nn.Module):
         batch_size_A = len(orgxs)
         batch_size_new = len(newxs)
         batch_size = batch_size_A + batch_size_new
-        xs = torch.cat((orgxs, newxs), dim=0)
         if batch_size_A == 0:
             import pdb
             pdb.set_trace()
-        lengths = torch.Tensor([x.shape[0] for x in xs]).long().to(self.device)
+        lengths = torch.Tensor([x.shape[0] for x in orgxs+newxs]).long().to(self.device)
 
         # discriminator label
         labels_orgxs = torch.zeros(batch_size_A, dtype=torch.float, device=self.device)
@@ -605,7 +604,9 @@ class Discriminator_module(nn.Module):
         # uniformly choose t
         ts = torch.randint(1, self.max_T + 1, [batch_size]).to(self.device)
 
-        x_t = self.destroyer.diffusion(xs, ts, ret_distr=False)
+        orgx_t = self.destroyer.diffusion(orgxs, ts, ret_distr=False)
+        newx_t = self.destroyer.diffusion(newxs, ts, ret_distr=False)
+        x_t = torch.cat((orgx_t, newx_t), dim=0)
         xt_padded = pad_sequence(x_t, batch_first=True, padding_value=0).long()
         # xs_padded = pad_sequence(xs, batch_first=True, padding_value=0).long()
         # horizon = xt_padded.shape[1]
