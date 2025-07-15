@@ -588,6 +588,8 @@ class Discriminator_module(nn.Module):
 
     def forward(self, orgxs, newxs, orgA, newA):
         # xs: list of tensors of labels
+        import pdb
+        pdb.set_trace()
         batch_size_A = len(orgxs)
         batch_size_new = len(newxs)
         batch_size = batch_size_A + batch_size_new
