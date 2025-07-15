@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from einops import rearrange
 from models_seq.eps_models import EPSM
+from models_seq.disc_models import Discriminator
 from torch.distributions.utils import probs_to_logits, clamp_probs
 from collections import defaultdict
 import numpy as np
@@ -563,4 +564,56 @@ class Restorer_SimTime(nn.Module):
                 nlls[i + left] -= (prob[torch.arange(lengths[i] - 1), path[0][1:]] + 0.00001).log().sum()
         return nlls
 
-        
+
+class Discriminator_module(nn.Module):
+    def __init__(self, disc_model: Discriminator, destroyer: Destroyer, device):
+        super().__init__()
+        self.n_vertex = destroyer.n_vertex
+        self.disc_model = disc_model
+        self.model_device = self.disc_model.device
+        self.device = device
+        self.destroyer = destroyer
+        self.des_device = destroyer.device
+        self.max_T = self.destroyer.max_T
+        self.matrices = self.destroyer.matrices
+        self.A = destroyer.A
+        self.Q = self.destroyer.get_Q()
+        self.Q = self.Q.to(self.device)
+        self.max_deg = self.A.sum(1).max()
+
+        self.applying_mask_intermediate = False
+        self.applying_mask_intermediate_temperature = False
+
+    def forward(self, xs):
+        # xs: list of tensors of labels
+        batch_size = len(xs)
+        if batch_size == 0:
+            import pdb
+            pdb.set_trace()
+        lengths = torch.Tensor([x.shape[0] for x in xs]).long().to(self.device)
+
+        # uniformly choose t
+        ts = torch.randint(1, self.max_T + 1, [batch_size]).to(self.device)
+
+        x_t = self.destroyer.diffusion(xs, ts, ret_distr=False)
+        xt_padded = pad_sequence(x_t, batch_first=True, padding_value=0).long()
+        xs_padded = pad_sequence(xs, batch_first=True, padding_value=0).long()
+        horizon = xt_padded.shape[1]
+        ts_padded = ts.view(-1, 1).repeat(1, horizon)
+
+        disc_logits = self.discriminate(xt_padded.to(self.model_device), lengths.to(self.model_device),
+                                        ts.to(self.model_device))
+        disc_probs = F.softmax(disc_logits, dim=-1)
+
+        loss = None
+
+        return loss
+
+    def discriminate(self, xt_padded, lengths=None, ts=None):
+        # xt_padded: b, h value is vertex number
+        # ts: b value is time for each
+        batch_size = xt_padded.shape[0]
+        if ts is None:
+            ts = torch.Tensor([self.max_T]).repeat(batch_size).to(self.device)
+        x0_pred_logits = self.disc_model(xt_padded, lengths, ts)
+        return x0_pred_logits
