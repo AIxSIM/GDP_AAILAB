@@ -437,7 +437,7 @@ class Restorer(nn.Module):
                 pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                 ####### Guidance ########
-                guidance =  destroyer_new.Q[t, :, xt.view(-1)].T / (self.Q[t, :, xt.view(-1)].T+1e-8)
+                guidance = self.Q[t, :, xt.view(-1)].T / (destroyer_new.Q[t, :, xt.view(-1)].T+1e-8)
                 pred_probs_unorm = pred_probs_unorm * guidance
                 #########################
 
