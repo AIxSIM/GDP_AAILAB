@@ -586,7 +586,7 @@ class Discriminator_module(nn.Module):
 
         self.criterion = nn.BCEWithLogitsLoss()
 
-    def forward(self, orgxs, newxs):
+    def forward(self, orgxs, newxs, orgA, newA):
         # xs: list of tensors of labels
         batch_size_A = len(orgxs)
         batch_size_new = len(newxs)
@@ -610,8 +610,12 @@ class Discriminator_module(nn.Module):
         newxt_padded = pad_sequence(newx_t, batch_first=True, padding_value=0).long()
         xt_padded = torch.cat((orgxt_padded, newxt_padded), dim=0)
 
+        A_expanded = orgA.unsqueeze(0).repeat(batch_size_A, 1, 1).float()
+        A_new_expanded = newA.unsqueeze(0).repeat(batch_size_new, 1, 1).float()
+        adj_matrix = torch.cat((A_expanded, A_new_expanded), dim=0)
+
         disc_logits = self.discriminate(xt_padded.to(self.model_device), lengths.to(self.model_device),
-                                        ts.to(self.model_device), adj_matrix)
+                                        ts.to(self.model_device), adj_matrix.to(self.model_device))
         loss = self.criterion(disc_logits, labels)
 
         return loss

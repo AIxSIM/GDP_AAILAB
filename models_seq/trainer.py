@@ -267,9 +267,6 @@ class Trainer_disc:
             test_sampler = None
             A_new = self.dataset.A
 
-        import pdb
-        pdb.set_trace()
-
         trainloader_A = DataLoader(train_dataset, batch_sampler=None,
                                     collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
         trainloader_new = DataLoader(train_dataset, batch_sampler=train_sampler,
@@ -284,7 +281,7 @@ class Trainer_disc:
         try:
             for epoch in range(n_epoch):
                 for xs, newxs in zip(trainloader_A, trainloader_new):
-                    loss = self.model(xs, newxs)
+                    loss = self.model(xs, newxs, self.dataset.A, A_new)
                     train_loss_avg += loss.item()
                     optimizer.zero_grad()
                     loss.backward()
