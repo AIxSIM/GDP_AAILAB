@@ -687,20 +687,28 @@ class Restorer_SimTime(nn.Module):
 
 
 class Discriminator_module(nn.Module):
-    def __init__(self, disc_model: Discriminator, destroyer: Destroyer, device):
+    def __init__(self, disc_model: Discriminator, destroyer_org: Destroyer, destroyer_new: Destroyer, device):
         super().__init__()
-        self.n_vertex = destroyer.n_vertex
+        self.n_vertex = destroyer_org.n_vertex
         self.disc_model = disc_model
         self.model_device = self.disc_model.device
         self.device = device
-        self.destroyer = destroyer
-        self.des_device = destroyer.device
-        self.max_T = self.destroyer.max_T
-        self.matrices = self.destroyer.matrices
-        self.A = destroyer.A
-        self.Q = self.destroyer.get_Q()
+        self.destroyer_org = destroyer_org
+        self.destroyer_new = destroyer_new
+        self.des_device = destroyer_org.device
+        self.max_T = self.destroyer_org.max_T
+
+        self.matrices = self.destroyer_org.matrices
+        self.A = destroyer_org.A
+        self.Q = self.destroyer_org.get_Q()
         self.Q = self.Q.to(self.device)
         self.max_deg = self.A.sum(1).max()
+
+        self.matrices_new = self.destroyer_new.matrices
+        self.A_new = destroyer_new.A
+        self.Q_new = self.destroyer_new.get_Q()
+        self.Q_new = self.Q_new.to(self.device)
+        self.max_deg_new = self.A_new.sum(1).max()
 
         self.applying_mask_intermediate = False
         self.applying_mask_intermediate_temperature = False
@@ -725,12 +733,12 @@ class Discriminator_module(nn.Module):
         # uniformly choose t
         ts = torch.randint(1, self.max_T + 1, [batch_size]).to(self.device)
 
-        orgx_t = self.destroyer.diffusion(orgxs, ts[:batch_size_A], ret_distr=False)
-        newx_t = self.destroyer.diffusion(newxs, ts[batch_size_A:], ret_distr=False)
+        orgx_t = self.destroyer_org.diffusion(orgxs, ts[:batch_size_A], ret_distr=False)
+        newx_t = self.destroyer_new.diffusion(newxs, ts[batch_size_A:], ret_distr=False)
         xt_padded = pad_sequence(orgx_t+newx_t, batch_first=True, padding_value=0).long()
 
-        A_expanded = orgA.unsqueeze(0).repeat(batch_size_A, 1, 1).float()
-        A_new_expanded = newA.unsqueeze(0).repeat(batch_size_new, 1, 1).float()
+        # A_expanded = orgA.unsqueeze(0).repeat(batch_size_A, 1, 1).float()
+        A_new_expanded = newA.unsqueeze(0).repeat(batch_size_new*2, 1, 1).float()
         adj_matrix = torch.cat((A_expanded, A_new_expanded), dim=0)
 
         disc_logits = self.discriminate(xt_padded.to(self.model_device), lengths.to(self.model_device),
