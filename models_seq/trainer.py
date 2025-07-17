@@ -235,10 +235,11 @@ class CustomPathBatchSampler(Sampler):
 
 
 class Trainer_disc:
-    def __init__(self, model: nn.Module, dataset, model_path, model_name):
+    def __init__(self, model: nn.Module, dataset, model_path, model_name, dataset_new=None):
         self.model = model
         self.device = model.device
         self.dataset = dataset
+        self.dataset_new = dataset_new
         self.model_path = model_path
         self.model_name = model_name
 
@@ -249,30 +250,15 @@ class Trainer_disc:
         # split train test
         train_num = int(0.8 * len(self.dataset))
         train_dataset, test_dataset = random_split(self.dataset, [train_num , len(self.dataset) - train_num])
-
-        # randomly removed edge for new A' and defined sampler that only sample paths that satisfy A'
-
-        if remove_region is not None:
-            print(f'remove {remove_region}')
-            A_new = self.dataset.edit(removal={"regions": remove_region}, direct_change=False)
-            torch.save(A_new, join(self.model_path, f"{self.model_name}_{remove_region}_A_new.pt"))
-            train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
-            test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=False)
-        elif remove_random:
-            A_new = self.dataset.edit(is_random=True, direct_change=False)
-            torch.save(A_new, join(self.model_path, f"{self.model_name}_random_A_new.pt"))
-            train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
-            test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=False)
-        else:
-            A_new = self.dataset.A
+        train_dataset_new, test_dataset_new = random_split(self.dataset_new, [train_num , len(self.dataset) - train_num])
 
         trainloader_A = DataLoader(train_dataset, batch_size,
                                     collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
-        trainloader_new = DataLoader(train_dataset, batch_sampler=train_sampler,
+        trainloader_new = DataLoader(train_dataset_new, batch_size,
                                     collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
         testloader_A = DataLoader(test_dataset, batch_size,
                                 collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
-        testloader_new = DataLoader(test_dataset, batch_sampler=test_sampler,
+        testloader_new = DataLoader(test_dataset_new, batch_size,
                                 collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
         self.model.train()
         iter, train_loss_avg = 0, 0
@@ -280,7 +266,7 @@ class Trainer_disc:
         try:
             for epoch in range(n_epoch):
                 for xs, newxs in zip(trainloader_A, trainloader_new):
-                    loss = self.model(xs, newxs, self.dataset.A, A_new)
+                    loss = self.model(xs, newxs, self.dataset.A, self.dataset_new.A)
                     train_loss_avg += loss.item()
                     optimizer.zero_grad()
                     loss.backward()

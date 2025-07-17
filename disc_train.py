@@ -1,7 +1,7 @@
 from os.path import join
 import torch
 from loader.gen_graph import DataGenerator
-from loader.dataset import TrajFastDataset, TrajFastDataset_SimTime
+from loader.dataset import TrajFastShortestDataset
 from utils.argparser import get_argparser
 from utils.evaluate import Evaluator
 
@@ -20,18 +20,11 @@ if __name__ == "__main__":
     print(device)
 
     # set dataset
-    if args.d_name == "":
-        n_vertex = args.n_vertex
-        name = f"v{args.n_vertex}_p{args.n_path}_{args.min_len}{args.max_len}"
-        dataset = DataGenerator(args.n_vertex, args.n_path, args.min_len, args.max_len, device, args.path, name)
-    elif args.d_name != "":
-        date = "20190701" if "dj" in args.d_name else "dj"
-        if args.sim_time == True:
-            dataset = TrajFastDataset_SimTime(args.d_name, [date], args.path, device, is_pretrain=True)
-        elif args.sim_time == False:
-            dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
-        n_vertex = dataset.n_vertex
-        print(f"vertex: {n_vertex}")
+    date = "20190701" if "dj" in args.d_name else "dj"
+    dataset_org = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True, index=args.shortest_org_idx)
+    dataset_new = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True, index=args.shortest_new_idx)
+    n_vertex = dataset_org.n_vertex
+    print(f"vertex: {n_vertex}")
 
     # before train, record the infob
     with open(join(args.model_path, f"{args.model_name}.info"), "w") as f:
@@ -45,14 +38,15 @@ if __name__ == "__main__":
     suffix = args.d_name
 
     betas = torch.linspace(args.beta_lb, args.beta_ub, args.max_T)
-    destroyer = Destroyer(dataset.A, betas, args.max_T, device)
+    destroyer_org = Destroyer(dataset_org.A, betas, args.max_T, device)
+    destroyer_new = Destroyer(dataset_new.A, betas, args.max_T, device)
     pretrain_path = join(args.path, f"{args.d_name}_node2vec.pkl")
     dims = eval(args.dims)
 
-    disc_model = Discriminator(dataset.n_vertex, x_emb_dim=args.x_emb_dim, dims=dims, device=device,
+    disc_model = Discriminator(dataset_org.n_vertex, x_emb_dim=args.x_emb_dim, dims=dims, device=device,
                                hidden_dim=args.hidden_dim, pretrain_path=pretrain_path)
-    model = Discriminator_module(disc_model, destroyer, device)
-    trainer = Trainer_disc(model, dataset, args.model_path, args.model_name)
+    model = Discriminator_module(disc_model, destroyer_org, device)
+    trainer = Trainer_disc(model, dataset_org, args.model_path, args.model_name, dataset_new=dataset_new)
 
     trainer.train_gmm(gmm_samples=args.gmm_samples, n_comp=args.gmm_comp)
 

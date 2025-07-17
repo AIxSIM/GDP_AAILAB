@@ -288,3 +288,105 @@ class TrajFastDataset_SimTime(Dataset):
         else:
             choices = np.random.choice(a=len(return_list), size=num, replace=False).tolist()
             return [return_list[c] for c in choices]
+
+
+#############################################################################################################
+""" For shortest path dataset """
+
+class TrajFastShortestDataset(Dataset):
+    def __init__(self, city, dates, path, device, is_pretrain, index=0):
+        super().__init__()
+        name = city
+        self.device = device
+
+        print ("!!! New TrajFastDataset !!!")
+        shortest_data_path = "/home/aailab/data2/tlsehdgur0/GDP_AAILAB/shortest_path_data"
+        idx = index
+
+        shrink_G_path = join(shortest_data_path, f"{name}_shrink_G_{idx}.pkl")
+        shrink_A_path = join(shortest_data_path, f"{name}_shrink_A_{idx}.ts")
+        shrink_NZ_path = join(shortest_data_path, f"{name}_shrink_NZ_{idx}.pkl")
+        shrink_SP_path = join(shortest_data_path, f"{name}_shrink_SP_{idx}.pkl") # List of list
+
+        if exists(shrink_G_path):
+            print("loading")
+            self.G = pickle.load(open(shrink_G_path, "rb"))
+            self.A = pickle.load(open(shrink_A_path, "rb"))
+            self.shrink_nonzero_dict = pickle.load(open(shrink_NZ_path, "rb"))
+            self.shortest_path_data = pickle.load(open(shrink_SP_path, "rb"))
+            print("finished")
+
+        else:
+            # self.G = pickle.load(open(join(path, f"{name}_G.pkl"), "rb"))
+            # self.n_vertex = len(self.G.nodes)
+            # self.A_orig = torch.load(join(path, f"{name}_A.ts"), map_location=torch.device("cpu"))
+            # print("loading path...")
+            # self.v_paths = np.loadtxt(join(path, f"{name}_v_paths.csv"), delimiter=',')
+            # print("finish loading")
+            # nonzeros = np.nonzero(self.v_paths.sum(0))[0]
+            # self.nonzeros = nonzeros
+            # print(f"shrink into {nonzeros.shape[0]} nodes")
+            # B = self.A_orig[nonzeros, :]
+            # self.A = B[:, nonzeros]
+            # self.v_paths = self.v_paths[:, nonzeros]
+            # self.length = self.v_paths.shape[0]
+            # self.shrink_nonzero_dict = dict()
+            # for k in range(nonzeros.shape[0]):
+            #     self.shrink_nonzero_dict[nonzeros[k]] = k
+            #
+            # # shrink G
+            # G_shrink = nx.Graph()
+            # shrink_node_attrs = [(k, {"lat": self.G.nodes[nonzeros[k]]["lat"], "lng": self.G.nodes[nonzeros[k]]["lng"]}) for k in range(self.nonzeros.shape[0])]
+            # G_shrink.add_nodes_from(shrink_node_attrs)
+            # for i in range(self.A.shape[0]):
+            #     for j in range(self.A.shape[0]):
+            #         if self.A[i, j] > 0.5:
+            #             G_shrink.add_edge(i, j)
+            # self.G = G_shrink
+            # self.A = self.A.to(self.device)
+            # print("finish shrink")
+            # pickle.dump(self.G, open(shrink_G_path, "wb"))
+            # pickle.dump(self.A, open(shrink_A_path, "wb"))
+            # pickle.dump(self.shrink_nonzero_dict, open(shrink_NZ_path, "wb"))
+            pass
+
+        # self.n_vertex = len(self.G.nodes)
+        # self.dates = dates
+        # h5_file = join(path, f"{city}_h5_paths.h5")
+        # self.f = h5py.File(h5_file, "r")
+        # sample_len = [self.f[date]["state_prefix"].shape[0] - 1 for date in dates]
+        # accu_len = [0 for _ in range(len(sample_len) + 1)]
+        # for k, l in enumerate(sample_len):
+        #     accu_len[k + 1] = accu_len[k] + l
+        # self.accu_len = accu_len
+        # self.total_len = accu_len[-1]
+        # if is_pretrain:
+        #     embed_path = join(path, f"{city}_node2vec.pkl")
+        #     path_path = join(path, f"{city}_path.pkl")
+        #     get_node2vec(self.G, embed_path, path_path)
+
+        self.n_vertex = len(self.G.nodes)
+        self.dates = dates
+        self.total_len = len(self.shortest_path_data)
+        if is_pretrain:
+            embed_path = join(path, f"{city}_node2vec.pkl")
+            path_path = join(path, f"{city}_path.pkl")
+            get_node2vec(self.G, embed_path, path_path)
+
+
+    def __getitem__(self, index):
+        # idx = self.__upper_bound(index) - 1
+        # date = self.dates[idx]
+        # offset = index - self.accu_len[idx]
+        # pleft, pright = self.f[date]["state_prefix"][offset], self.f[date]["state_prefix"][offset + 1]
+        # # return self.__filter(self.f[date]["states"][pleft: pright])
+        # return [self.shrink_nonzero_dict[node] for node in self.f[date]["states"][pleft: pright]]
+        return self.shortest_path_data[index]
+
+    def __len__(self):
+        return self.total_len
+
+    def get_real_paths(self, num=500):  ## org : num=500
+        choices = np.random.choice(a=self.total_len, size=num, replace=False).tolist()  # org : replace = False / 비복원추출
+        return [self.__getitem__(c) for c in choices]
+
