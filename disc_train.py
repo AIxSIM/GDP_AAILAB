@@ -20,9 +20,8 @@ if __name__ == "__main__":
     print(device)
 
     # set dataset
-    date = "20190701" if "dj" in args.d_name else "dj"
-    dataset_org = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True, index=args.shortest_org_idx)
-    dataset_new = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True, index=args.shortest_new_idx)
+    dataset_org = TrajFastShortestDataset("dj", None, args.path, device, is_pretrain=True, index=args.shortest_org_idx)
+    dataset_new = TrajFastShortestDataset("dj", None, args.path, device, is_pretrain=True, index=args.shortest_new_idx)
     n_vertex = dataset_org.n_vertex
     print(f"vertex: {n_vertex}")
 
