@@ -40,14 +40,17 @@ class Trainer:
             torch.save(A_new, join(self.model_path, f"{self.model_name}_{remove_region}_A_new.pt"))
             train_sampler = CustomPathBatchSampler(train_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=True)
             test_sampler = CustomPathBatchSampler(test_dataset, batch_size=batch_size, adjacency_matrix=A_new, shuffle=False)
+            trainloader = DataLoader(train_dataset, batch_sampler=train_sampler,
+                                        collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
+            testloader = DataLoader(test_dataset, batch_sampler=test_sampler,
+                                    collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
         else:
             train_sampler = None
             test_sampler = None
-
-        trainloader = DataLoader(train_dataset, batch_sampler=train_sampler,
+            trainloader = DataLoader(train_dataset, batch_size,
+                                        collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
+            testloader = DataLoader(test_dataset, batch_size,
                                     collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
-        testloader = DataLoader(test_dataset, batch_sampler=test_sampler,
-                                collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
         self.model.train()
         iter, train_loss_avg = 0, 0
         kl_loss_avg, ce_loss_avg, con_loss_avg = 0, 0, 0
