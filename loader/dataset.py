@@ -390,3 +390,22 @@ class TrajFastShortestDataset(Dataset):
         choices = np.random.choice(a=self.total_len, size=num, replace=False).tolist()  # org : replace = False / 비복원추출
         return [self.__getitem__(c) for c in choices]
 
+    def get_real_paths_with_gen_paths(self, gen_paths):  ## org : num=500
+        matched_paths = []
+        for path in gen_paths:
+            if len(path) == 1:
+                matched_paths.append(path)
+                continue
+            start, end = path[0], path[-1]
+            found = None
+            for sp in self.shortest_path_data:
+                if sp[0] == start and sp[-1] == end:
+                    found = sp
+                    break
+            if found:
+                matched_paths.append(found)
+            else:
+                print('not matched!')
+                matched_paths.append([])
+        return matched_paths
+

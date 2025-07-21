@@ -30,7 +30,7 @@ if __name__ == "__main__":
         n_vertex = args.n_vertex
         name = f"v{args.n_vertex}_p{args.n_path}_{args.min_len}{args.max_len}"
         dataset = DataGenerator(args.n_vertex, args.n_path, args.min_len, args.max_len, device, args.path, name)
-    elif args.model_name == 'shortest':
+    elif 'shortest' in args.model_name:
         dataset = TrajFastShortestDataset(args.d_name, None, args.path, device, is_pretrain=True, index=args.shortest_org_idx)
     elif args.d_name != "":
         date = "20190701" if "dj" in args.d_name else "dj"
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         print(f'Sampling time: {time.time() - start_time} seconds')
         import pdb
         pdb.set_trace()
-        real_paths = dataset.get_real_paths(args.eval_num)
+        real_paths = dataset.get_real_paths_with_gen_paths(gen_paths)
 
         torch.save(gen_paths, join(args.model_path, f"{args.model_name}_{args.save_name}_gen_paths.pth"))
         evaluator = Evaluator(real_paths, gen_paths, model, n_vertex, dataset=dataset,
