@@ -32,6 +32,7 @@ if __name__ == "__main__":
         dataset = DataGenerator(args.n_vertex, args.n_path, args.min_len, args.max_len, device, args.path, name)
     elif 'shortest' in args.model_name:
         dataset = TrajFastShortestDataset(args.d_name, None, args.path, device, is_pretrain=True, index=args.shortest_org_idx)
+        n_vertex = dataset.n_vertex
     elif args.d_name != "":
         date = "20190701" if "dj" in args.d_name else "dj"
         if args.sim_time == True:
