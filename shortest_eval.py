@@ -61,8 +61,6 @@ if __name__ == "__main__":
         start_time = time.time()
         gen_paths = model.sample(args.eval_num, args.batch_traj_num)
         print(f'Sampling time: {time.time() - start_time} seconds')
-        import pdb
-        pdb.set_trace()
         real_paths = dataset.get_real_paths_with_gen_paths(gen_paths)
 
         torch.save(gen_paths, join(args.model_path, f"{args.model_name}_{args.save_name}_gen_paths.pth"))
