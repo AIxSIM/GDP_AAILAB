@@ -108,6 +108,9 @@ class Evaluator:
         filtered_paths = [self.gen_paths[i] for i in idx_for_analysis]
         for i in range(len(idx_for_analysis)):
             draw_paths([filtered_paths[i]], self.dataset.G, f"./figs_path_analysis/PATH_{i}_seq_gen_{suffix}.html")
+        real_filtered_paths = [self.real_paths[i] for i in idx_for_analysis]
+        for i in range(len(idx_for_analysis)):
+            draw_paths([real_filtered_paths[i]], self.dataset.G, f"./figs_path_analysis/PATH_{i}_seq_real_{suffix}.html")
 
         planned_paths_coors = self._convert_from_id_to_lat_lng(self.gen_paths, False)
         gen_path_count = draw_heatmap(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * len(planned_paths_coors), no_points=False)
