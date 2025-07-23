@@ -407,6 +407,7 @@ class TrajFastShortestDataset(Dataset):
             if start == end:
                 print('same od!')
                 num_same_od += 1
+                matched_paths.append([])
                 continue
             key = (path[0], path[-1])
             try:
