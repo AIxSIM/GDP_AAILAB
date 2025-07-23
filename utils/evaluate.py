@@ -113,7 +113,7 @@ class Evaluator:
             try:
                 draw_paths([real_filtered_paths[i]], self.dataset.G, f"./figs_path_analysis/PATH_{i}_seq_real_{suffix}.html")
             except:
-                pass
+                print(f'Loop! ./figs_path_analysis/PATH_{i}_seq_real_{suffix}.html')
 
         planned_paths_coors = self._convert_from_id_to_lat_lng(self.gen_paths, False)
         gen_path_count = draw_heatmap(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * len(planned_paths_coors), no_points=False)
