@@ -43,6 +43,8 @@ if __name__ == "__main__":
     if args.method != "plan":
         model = torch.load(join(args.model_path, f"{args.model_name}.pth"), map_location=device)
         model.device = device
+
+        model.to(device)
         model.eps_model.device = device
         # TODO: need to change device for all modules in model
         model.eval()

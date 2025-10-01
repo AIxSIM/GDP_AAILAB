@@ -73,4 +73,6 @@ def get_argparser() -> argparse.ArgumentParser:
     parser.add_argument("-shortest_org_idx", type=int, help="Shortest path index", default=999)
     parser.add_argument("-shortest_new_idx", type=int, help="Shortest path index", default=0)
 
+    parser.add_argument("-shortest_data_path", type=str, help="shortest path", default="./shortest_path_data")
+
     return parser

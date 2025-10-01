@@ -294,13 +294,12 @@ class TrajFastDataset_SimTime(Dataset):
 """ For shortest path dataset """
 
 class TrajFastShortestDataset(Dataset):
-    def __init__(self, city, dates, path, device, is_pretrain, index=0):
+    def __init__(self, city, dates, path, device, is_pretrain, index=0, shortest_data_path='./shortest_path_data'):
         super().__init__()
         name = city
         self.device = device
 
         print ("!!! New TrajFastDataset !!!")
-        shortest_data_path = "/home/aailab/data2/tlsehdgur0/GDP_AAILAB/shortest_path_data"
         idx = index
 
         shrink_G_path = join(shortest_data_path, f"{name}_shrink_G_{idx}.pkl")
