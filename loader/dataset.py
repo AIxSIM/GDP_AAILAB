@@ -294,7 +294,7 @@ class TrajFastDataset_SimTime(Dataset):
 """ For shortest path dataset """
 
 class TrajFastShortestDataset(Dataset):
-    def __init__(self, city, dates, path, device, is_pretrain, index=0, shortest_data_path=None):
+    def __init__(self, city, dates, path, device, is_pretrain, index=0, shortest_data_path=None, shuffle=True):
         super().__init__()
         name = city
         self.device = device
@@ -314,8 +314,9 @@ class TrajFastShortestDataset(Dataset):
             self.A = pickle.load(open(shrink_A_path, "rb"))
             self.shrink_nonzero_dict = pickle.load(open(shrink_NZ_path, "rb"))
             self.shortest_path_data = pickle.load(open(shrink_SP_path, "rb"))
-            # import random
-            # random.shuffle(self.shortest_path_data)
+            if shuffle:
+                import random
+                random.shuffle(self.shortest_path_data)
             print("finished")
 
         else:
