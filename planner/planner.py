@@ -38,7 +38,7 @@ class Planner(nn.Module):
         self.ord_to_v = dict()  # v : [] list of vertices
         val, ind = A.long().topk(self.max_deg, dim=1)
         for i in range(self.n_vertex):
-            valid_ind = ind[i][val[i] == 1].cpu().tolist()
+            valid_ind = ind[i][val[i] != 0].cpu().tolist()
             self.v_to_ord[i] = dict(zip(valid_ind, list(range(len(valid_ind)))))
             self.ord_to_v[i] = valid_ind
             
@@ -95,7 +95,7 @@ class Planner(nn.Module):
         xs_padded = pad_sequence(xs, batch_first=True, padding_value=0)
         xs_actions = [torch.Tensor([self.v_to_ord[a.item()][b.item()] for a, b in zip(x, x[1:])]).long().to(self.device) for x in xs]
         batch_size, horizon = xs_padded.shape
-        xs_padded_emb = self.x_embedding(xs_padded)
+        xs_padded_emb = self.x_embedding(xs_padded.long())
         dest_emb = self.x_embedding(destinations)
         attention_mask = torch.ones_like(xs_padded).long()
         for k in range(batch_size):
@@ -107,12 +107,12 @@ class Planner(nn.Module):
         )
         hidden = transformer_outputs['last_hidden_state']   # b h c = embed
         # get distances: b h 1
-        distances = (self.locations[xs_padded] - self.locations[destinations].unsqueeze(1)).abs().sum(dim=-1, keepdim=True) * 100
+        distances = (self.locations[xs_padded.long()] - self.locations[destinations].unsqueeze(1)).abs().sum(dim=-1, keepdim=True) * 100
         distances_feature = self.distance_mlp(distances) # b h dim
         # get directions: b h deg
-        directions = (self.adj_dir[xs_padded] * self.tv_dir[xs_padded, destinations.unsqueeze(1)].unsqueeze(2)).sum(dim=-1, keepdim=False)
+        directions = (self.adj_dir[xs_padded.long()] * self.tv_dir[xs_padded.long(), destinations.unsqueeze(1)].unsqueeze(2)).sum(dim=-1, keepdim=False)
         # fill -1
-        directions = torch.masked_fill(directions, self.mask[xs_padded], -1)
+        directions = torch.masked_fill(directions, self.mask[xs_padded.long()], -1)
         directions_feature = self.direction_mlp(directions) # b h dim
         feed = torch.concat([hidden, distances_feature, directions_feature, dest_emb.unsqueeze(1).repeat(1, horizon, 1)], dim=-1)
         # distance_mlp, direction_mlp, hidden => out_mlp
