@@ -29,10 +29,12 @@ if __name__ == "__main__":
         print("Shortest exp!")
     elif args.d_name != "":
         date = "20190701" if "dj" in args.d_name else "dj"
-        if args.sim_time == True:
-            dataset = TrajFastDataset_SimTime(args.d_name, [date], args.path, device, is_pretrain=True)
-        elif args.sim_time == False:
-            dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
+        # if args.sim_time == True:
+        #     dataset = TrajFastDataset_SimTime(args.d_name, [date], args.path, device, is_pretrain=True)
+        # elif args.sim_time == False:
+        #     dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
+        dataset = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True)
+
         n_vertex = dataset.n_vertex
         print(f"vertex: {n_vertex}")
 

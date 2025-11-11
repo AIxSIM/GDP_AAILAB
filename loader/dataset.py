@@ -294,18 +294,19 @@ class TrajFastDataset_SimTime(Dataset):
 """ For shortest path dataset """
 
 class TrajFastShortestDataset(Dataset):
-    def __init__(self, city, dates, path, device, is_pretrain, index=0, shortest_data_path='./shortest_path_data'):
+    def __init__(self, city, dates, path, device, is_pretrain, index=0, shortest_data_path=None):
         super().__init__()
         name = city
         self.device = device
 
         print ("!!! New TrajFastDataset !!!")
-        idx = index
+        if shortest_data_path is None:
+            shortest_data_path = path
 
-        shrink_G_path = join(shortest_data_path, f"{name}_shrink_G_{idx}.pkl")
-        shrink_A_path = join(shortest_data_path, f"{name}_shrink_A_{idx}.ts")
-        shrink_NZ_path = join(shortest_data_path, f"{name}_shrink_NZ_{idx}.pkl")
-        shrink_SP_path = join(shortest_data_path, f"{name}_shrink_SP_{idx}.pkl") # List of list
+        shrink_G_path = join(shortest_data_path, f"{name}_shrink_G.pkl")
+        shrink_A_path = join(shortest_data_path, f"{name}_shrink_A.ts")
+        shrink_NZ_path = join(shortest_data_path, f"{name}_shrink_NZ.pkl")
+        shrink_SP_path = join(shortest_data_path, f"{name}_shrink_RP.pkl") # Real_path
 
         if exists(shrink_G_path):
             print("loading")
@@ -313,6 +314,8 @@ class TrajFastShortestDataset(Dataset):
             self.A = pickle.load(open(shrink_A_path, "rb"))
             self.shrink_nonzero_dict = pickle.load(open(shrink_NZ_path, "rb"))
             self.shortest_path_data = pickle.load(open(shrink_SP_path, "rb"))
+            import random
+            random.shuffle(self.shortest_path_data)
             print("finished")
 
         else:

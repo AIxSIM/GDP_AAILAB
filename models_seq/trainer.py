@@ -15,6 +15,10 @@ from itertools import cycle
 from os.path import join
 from utils.coors import wgs84_to_gcj02
 
+import logging
+
+
+
 
 class Trainer:
     def __init__(self, model: nn.Module, dataset, model_path, model_name):
@@ -54,6 +58,13 @@ class Trainer:
         self.model.train()
         iter, train_loss_avg = 0, 0
         kl_loss_avg, ce_loss_avg, con_loss_avg = 0, 0, 0
+
+        logging.basicConfig(
+            filename=f'./sets_model/{self.model_name}train_log.txt',
+            level=logging.INFO,
+            format='%(asctime)s - %(message)s',
+        )
+
         try:
             for epoch in range(n_epoch):
                 for xs in trainloader:
@@ -79,6 +90,12 @@ class Trainer:
                         test_kl, test_ce, test_con = next(self.eval_test(testloader))
                         test_loss = test_kl + test_ce + test_con
                         print(f"e: {epoch}, i: {iter}, train loss: {train_loss_avg / denom: .4f}, (kl: {kl_loss_avg / denom: .4f}, ce: {ce_loss_avg / denom: .4f}, co: {con_loss_avg / denom: .4f}), test loss: {test_loss: .4f}, (kl: {test_kl: .4f}, ce: {test_ce: .4f}, co: {test_con: .4f})")
+                        logging.info(
+                            f"e: {epoch}, i: {iter}, train loss: {train_loss_avg / denom: .4f}, "
+                            f"(kl: {kl_loss_avg / denom: .4f}, ce: {ce_loss_avg / denom: .4f}, co: {con_loss_avg / denom: .4f}), "
+                            f"test loss: {test_loss: .4f}, "
+                            f"(kl: {test_kl: .4f}, ce: {test_ce: .4f}, co: {test_con: .4f})"
+                        )
                         train_loss_avg, kl_loss_avg, ce_loss_avg, con_loss_avg = 0., 0., 0., 0.
                 model_name = f"{self.model_name}_iter_{iter}.pth"
                 torch.save(self.model, join(self.model_path, model_name))

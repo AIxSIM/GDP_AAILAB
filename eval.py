@@ -1,7 +1,7 @@
 from os.path import join
 import torch
 from loader.gen_graph import DataGenerator
-from loader.dataset import TrajFastDataset , TrajFastDataset_SimTime
+from loader.dataset import TrajFastDataset , TrajFastDataset_SimTime, TrajFastShortestDataset
 from utils.argparser import get_argparser
 from utils.evaluate import Evaluator
 import numpy as np
@@ -32,10 +32,11 @@ if __name__ == "__main__":
         dataset = DataGenerator(args.n_vertex, args.n_path, args.min_len, args.max_len, device, args.path, name)
     elif args.d_name != "":
         date = "20190701" if "dj" in args.d_name else "dj"
-        if args.sim_time == True:
-            dataset = TrajFastDataset_SimTime(args.d_name, [date], args.path, device, is_pretrain=True)
-        elif args.sim_time == False:
-            dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
+        # if args.sim_time == True:
+        #     dataset = TrajFastDataset_SimTime(args.d_name, [date], args.path, device, is_pretrain=True)
+        # elif args.sim_time == False:
+        #     dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
+        dataset = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True)
 
         n_vertex = dataset.n_vertex
         print(f"vertex: {n_vertex}")

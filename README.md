@@ -41,6 +41,23 @@ This is the code complemented by AAILAB in SyntheticData project.
     └── train.sh
 ```
 
+
+
+## Training and Evaluation Scripts for Ulju-Gijang
+
+* Training (no-planning)
+```python
+CUDA_VISIBLE_DEVICES=0 python main.py -device "cuda" -path "./sets_data" -model_path "./sets_model" -res_path "./sets_res" -d_name "kjwj_v3_total" -model_name "no_plan_gen_kjwj_v3_total_8_0.0001" -method "seq" -beta_lb 0.0001 -beta_ub 10 -max_T 100 -gmm_comp 5 -dims "[100, 120, 200]" -hidden_dim 32 -n_epoch 10 -bs 8 -lr 0.0001 -gmm_samples 100000 -eval_num 2000
+```
+* Training (planning)
+```python
+CUDA_VISIBLE_DEVICES=1 python main.py -device "cuda" -path "./sets_data" -model_path "./sets_model" -res_path "./sets_res" -d_name "kjwj_v3_total" -model_name "no_plan_gen_kjwj_v3_total" -method "plan" -x_emb_dim 100 -n_epoch 5 -bs 32 -lr 0.001 -eval_num 100
+```
+* Eval (no-planning)
+```python
+CUDA_VISIBLE_DEVICES=0 python eval.py -device "cuda" -path "./sets_data" -model_path "./sets_model" -res_path "./sets_res" -d_name "kjwj_v3_total" -model_name no_plan_gen_kjwj_v3_total_8_0.0001 -method "seq" -eval_num 2000
+```
+
 ## Data Preparation
 Directories regarding data preparations are as follows: 
 ```bash
