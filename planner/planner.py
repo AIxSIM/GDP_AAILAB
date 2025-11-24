@@ -42,7 +42,7 @@ class Planner(nn.Module):
             self.v_to_ord[i] = dict(zip(valid_ind, list(range(len(valid_ind)))))
             self.ord_to_v[i] = valid_ind
             
-        # two vertex abs direction
+        # two vertex abs direction ##
         # (xb - xa)/ \sqrt{(y_b - y_a)^2 + (xb - xa)^2}, (yb - ya)/ \sqrt{(y_b - y_a)^2 + (xb - xa)^2}
         self.tv_dir = torch.zeros([self.n_vertex, self.n_vertex, 2]).to(self.device)
         self.adj_dir = torch.zeros(self.n_vertex, self.max_deg, 2).to(self.device)
