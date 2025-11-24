@@ -234,3 +234,49 @@ class TrajFastDataset_SimTime(Dataset):
         else:
             choices = np.random.choice(a=len(return_list), size=num, replace=False).tolist()
             return [return_list[c] for c in choices]
+
+
+""" For shortest path dataset """
+
+class TrajFastDataset_Shortest(Dataset):
+    def __init__(self, city, dates, path, device, is_pretrain):
+        super().__init__()
+        name = city
+        self.device = device
+
+        shortest_data_path = path # Need to check
+        idx = 0
+
+        shrink_G_path = join(shortest_data_path, f"{name}_shrink_G_{idx}.pkl")
+        shrink_A_path = join(shortest_data_path, f"{name}_shrink_A_{idx}.ts")
+        shrink_NZ_path = join(shortest_data_path, f"{name}_shrink_NZ_{idx}.pkl")
+        shrink_SP_path = join(shortest_data_path, f"{name}_shrink_SP_{idx}.pkl") # List of list
+
+        if exists(shrink_G_path):
+            print("loading")
+            self.G = pickle.load(open(shrink_G_path, "rb"))
+            self.A = pickle.load(open(shrink_A_path, "rb"))
+            self.shrink_nonzero_dict = pickle.load(open(shrink_NZ_path, "rb"))
+            self.shortest_path_data = pickle.load(open(shrink_SP_path, "rb"))
+            print("finished")
+
+        else:
+            pass
+
+        self.n_vertex = len(self.G.nodes)
+        self.dates = dates
+        self.total_len = len(self.shortest_path_data)
+        if is_pretrain:
+            embed_path = join(path, f"{city}_node2vec.pkl")
+            path_path = join(path, f"{city}_path.pkl")
+            get_node2vec(self.G, embed_path, path_path)
+
+    def __getitem__(self, index):
+        return self.shortest_path_data[index]
+
+    def __len__(self):
+        return self.total_len
+
+    def get_real_paths(self, num=500):  ## org : num=500
+        choices = np.random.choice(a=self.total_len, size=num, replace=False).tolist()
+        return [self.__getitem__(c) for c in choices]
