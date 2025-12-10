@@ -75,7 +75,8 @@ if __name__ == "__main__":
 
         torch.save(gen_paths, join(args.model_path, f"{args.model_name}_{args.save_name}_gen_paths.pth"))
         evaluator = Evaluator(real_paths, gen_paths, model, n_vertex, dataset=dataset,
-                              name=join(args.res_path, f"{args.model_name}_{args.save_name}_pure_gen"), sim_time=args.sim_time)
+                              name=join(args.res_path, f"{args.model_name}_{args.save_name}_pure_gen"), sim_time=args.sim_time,
+                              A=new_A, removal=removal)
         evaluator.eval(suffix=f"{args.model_name}_{args.save_name}")
         res = evaluator.eval_all()
         print(res)

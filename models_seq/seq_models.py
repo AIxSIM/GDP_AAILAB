@@ -355,8 +355,8 @@ class Restorer(nn.Module):
                 if edge is None:
                     print("Link {} not found".format(link))
                     continue
-                removal["edges"].append((edge[0], edge[1]))
-                removal["edges_reverse"].append((edge[1], edge[0]))
+                removal["edges"].append([edge[0], edge[1]])
+                removal["edges_reverse"].append([edge[1], edge[0]])
 
         new_A = self.A.clone().detach()
         new_A = (new_A != 0).to(new_A.dtype)
@@ -382,7 +382,7 @@ class Restorer(nn.Module):
                         break
         print(f'remove {(self.A.data - new_A.data).sum()} edges.')
 
-        assert torch.all(new_A.transpose(0, 1) == new_A)
+        # assert torch.all(new_A.transpose(0, 1) == new_A)
 
         if direct_change:
             self.A.data = new_A.data

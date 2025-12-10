@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from utils.visual import draw_heatmap, draw_paths
 
 class Evaluator:
-    def __init__(self, real_paths, gen_paths, model, n_vertex, dataset, name="e1", sim_time=False) -> None:
+    def __init__(self, real_paths, gen_paths, model, n_vertex, dataset, name="e1", sim_time=False, A=None, removal=None) -> None:
         self.real_paths = real_paths
         self.gen_paths = gen_paths
         self.n_vertex = n_vertex
@@ -13,6 +13,8 @@ class Evaluator:
         self.name = name
         self.dataset = dataset
         self.sim_time = sim_time
+        self.A = A
+        self.removal = removal
 
     @staticmethod
     def JS_divergence(p, q):
@@ -114,6 +116,11 @@ class Evaluator:
                 draw_paths([real_filtered_paths[i]], self.dataset.G, f"./figs_path_analysis/PATH_{i}_seq_real_{suffix}.html")
             except:
                 print(f'Loop! ./figs_path_analysis/PATH_{i}_seq_real_{suffix}.html')
+
+        A_idx = (self.A != 0).nonzero(as_tuple=False).tolist()
+        A_color = ["red" if pair in self.removal["edges_reverse"] else "blue" for pair in A_idx]
+        A_coors = self._convert_from_id_to_lat_lng(A_idx, False)
+        A_count = draw_heatmap(A_coors, f"./figs/seq_A_{suffix}.html", colors=A_color, no_points=False)
 
         planned_paths_coors = self._convert_from_id_to_lat_lng(self.gen_paths, False)
         gen_path_count = draw_heatmap(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * len(planned_paths_coors), no_points=False)
