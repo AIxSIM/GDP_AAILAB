@@ -255,8 +255,17 @@ class Restorer(nn.Module):
                 try:
                     x[:, k] = torch.multinomial(x_next_masked_prob, 1).view(-1)
                 except:
-                    import pdb
-                    pdb.set_trace()
+                    bad_mask = x_next_masked_prob.sum(-1) <= 0  # shape: (batch,)
+                    good_mask = ~bad_mask
+                    if good_mask.any():
+                        x_next_masked_prob_good = x_next_masked_prob[good_mask]  # (good_batch, V)
+                        sampled_good = torch.multinomial(x_next_masked_prob_good, 1).view(-1)
+                        x[good_mask, k] = sampled_good
+                    if bad_mask.any():
+                        batch_size, vocab_size = x_next_masked_prob.shape
+                        random_idx = torch.randint(0, vocab_size, (bad_mask.sum(),), device=x.device)
+                        x[bad_mask, k] = random_idx
+                        lengths[bad_mask] = k - 1
             x_list = [x[k][:lengths[k]].cpu().tolist() for k in range(n_samples)]
             if ret_trace:
                 reverse_trace[0] = x_list
