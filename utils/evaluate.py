@@ -120,7 +120,7 @@ class Evaluator:
         A_idx = (self.A != 0).nonzero(as_tuple=False).tolist()
         A_color = ["red" if pair in self.removal["edges_reverse"] else "blue" for pair in A_idx]
         A_coors = self._convert_from_id_to_lat_lng(A_idx, False)
-        A_count = draw_heatmap(A_coors, f"./figs/seq_A_{suffix}.html", colors=A_color, no_points=False)
+        A_count = draw_heatmap(A_coors, f"./figs/seq_A_{suffix}.html", colors=A_color, no_points=False, weight=5)
 
         planned_paths_coors = self._convert_from_id_to_lat_lng(self.gen_paths, False)
         gen_path_count = draw_heatmap(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * len(planned_paths_coors), no_points=False)
