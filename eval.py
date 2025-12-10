@@ -53,6 +53,8 @@ if __name__ == "__main__":
         model.applying_mask_intermediate = args.applying_mask_intermediate
         model.applying_mask_intermediate_temperature = args.applying_mask_intermediate_temperature
 
+        model.edit(removal={"regions": [[[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]]},
+                  G=dataset.G, direct_change=True)
         if args.min_lat != -1:
             model.edit(removal={"regions" : [[[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]]},
                        G=dataset.G, direct_change=True)

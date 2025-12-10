@@ -327,6 +327,9 @@ class Restorer(nn.Module):
         if (removal is None) and (not is_random):
             exit("Please check edit in seq_models.py")
 
+        import pdb
+        pdb.set_trace()
+
         if is_random:
             size = 0.01
             min_lat, max_lat = 999, -999
