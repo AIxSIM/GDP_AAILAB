@@ -377,10 +377,14 @@ class Restorer(nn.Module):
 
         if "edges" in removal.keys():
             for node1, node2 in removal["edges"]:
+                import pdb
+                pdb.set_trace()
                 new_A[node1, node2] = 0
 
         if "edges_reverse" in removal.keys():
             for node1, node2 in removal["edges_reverse"]:
+                import pdb
+                pdb.set_trace()
                 new_A[node1, node2] = reverse_weight * new_A[node1, node2]
 
         if "regions" in removal.keys():
