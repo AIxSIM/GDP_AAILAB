@@ -323,7 +323,7 @@ class Restorer(nn.Module):
                 nlls[i + left] -= (prob[torch.arange(lengths[i] - 1), path[1:]] + 0.00001).log().sum()
         return nlls
 
-    def edit(self, removal=None, is_random=False, G=None, direct_change=False, lst_link=None, reverse_weight=1):  # removal : {"nodes": [xxx, yyy, zzz], "edges": [[XXX, YYY], [ZZZ, WWW]], "regions" : list of [[min_lat, max_lat], [min_lng, max_lng]]}
+    def edit(self, removal=None, is_random=False, G=None, direct_change=False, lst_link=None, lst_opp=None, reverse_weight=1):  # removal : {"nodes": [xxx, yyy, zzz], "edges": [[XXX, YYY], [ZZZ, WWW]], "regions" : list of [[min_lat, max_lat], [min_lng, max_lng]]}
         if is_random:
             size = 0.01
             min_lat, max_lat = 999, -999
@@ -357,6 +357,15 @@ class Restorer(nn.Module):
                     continue
                 removal["edges"].append([edge[0], edge[1]])
                 removal["edges_reverse"].append([edge[1], edge[0]])
+
+            for link in lst_opp:
+                edge = next(((u, v, d) for u, v, d in G.edges(data=True) if d.get("link_id") == link), None)
+                if edge is None:
+                    print("Link {} not found".format(link))
+                    continue
+                if [edge[0], edge[1]] not in removal["edges_reverse"]:
+                    print("[OPPOSITE] Link {} found".format(link))
+                    removal["edges_reverse"].append([edge[0], edge[1]])
 
         self.A = (self.A != 0).to(self.A.dtype)
         new_A = self.A.clone().detach()
