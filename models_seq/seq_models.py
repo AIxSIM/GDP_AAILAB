@@ -361,10 +361,11 @@ class Restorer(nn.Module):
             for link in lst_opp:
                 edge = next(((u, v, d) for u, v, d in G.edges(data=True) if d.get("link_id") == link), None)
                 if edge is None:
-                    print("Link {} not found".format(link))
+                    print("[OPPOSITE] Link {} not found".format(link))
                     continue
                 if [edge[0], edge[1]] not in removal["edges_reverse"]:
                     print("[OPPOSITE] Link {} found".format(link))
+                    removal["edges"].append([edge[1], edge[0]])
                     removal["edges_reverse"].append([edge[0], edge[1]])
 
         self.A = (self.A != 0).to(self.A.dtype)
