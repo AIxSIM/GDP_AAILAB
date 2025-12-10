@@ -68,11 +68,13 @@ def draw_heatmap(locations_series, html_path, colors=None, no_points=False, weig
             if path in highlight:
                 print("[Highlight] FIND!")
                 color = "red"
+                weight_num = weight * count * 2
             else:
                 color = "blue"
+                weight_num = weight * count
         else:
             color = "red" if colors is None else colors[0]
-        folium.PolyLine(path, weight=weight * count, color=color, opacity=0.7).add_to(m)
+        folium.PolyLine(path, weight=weight_num, color=color, opacity=0.7).add_to(m)
     if not os.path.exists(html_path):
         os.makedirs(os.path.dirname(html_path), exist_ok=True)
     m.save(html_path)

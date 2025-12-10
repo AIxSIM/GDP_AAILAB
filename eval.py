@@ -74,10 +74,11 @@ if __name__ == "__main__":
                        G=dataset.G, direct_change=True)
 
         ##################### Visualization of new_A in exceptional cases ##############################
-        # evaluator = Evaluator(None, None, model, n_vertex, dataset=dataset,
-        #                       name=join(args.res_path, f"{args.model_name}_{args.save_name}_pure_gen"), sim_time=args.sim_time,
-        #                       A=new_A, removal=removal)
-        # evaluator.A_vis(suffix=f"{args.model_name}_{args.save_name}")
+        evaluator = Evaluator(None, None, model, n_vertex, dataset=dataset,
+                              name=join(args.res_path, f"{args.model_name}_{args.save_name}_pure_gen"), sim_time=args.sim_time,
+                              A=new_A, removal=removal)
+        evaluator.A_vis(suffix=f"{args.model_name}_{args.save_name}")
+        ddddd
         ##################### Visualization of new_A in exceptional cases ##############################
 
         # gen_paths: list of lists (len: eval_num, element: list of nodes)
