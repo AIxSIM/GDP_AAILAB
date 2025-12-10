@@ -92,6 +92,12 @@ class Evaluator:
                 path_coors.append([[self.dataset.G.nodes[v]["lat"], self.dataset.G.nodes[v]["lng"]] for v in path])
         return path_coors
 
+    def A_vis(self, suffix):
+        A_idx = (self.A != 0).nonzero(as_tuple=False).tolist()
+        A_coors = self._convert_from_id_to_lat_lng(A_idx, False)
+        A_highlight_coors = self._convert_from_id_to_lat_lng(self.removal["edges_reverse"], False)
+        A_count = draw_heatmap(A_coors, f"./figs/seq_A_{suffix}.html", colors=["blue"], no_points=False, weight=1, highlight=A_highlight_coors)
+
     def eval(self, suffix):
 
         # x_min, x_max = 36.361, 36.362
@@ -116,11 +122,6 @@ class Evaluator:
                 draw_paths([real_filtered_paths[i]], self.dataset.G, f"./figs_path_analysis/PATH_{i}_seq_real_{suffix}.html")
             except:
                 print(f'Loop! ./figs_path_analysis/PATH_{i}_seq_real_{suffix}.html')
-
-        A_idx = (self.A != 0).nonzero(as_tuple=False).tolist()
-        A_coors = self._convert_from_id_to_lat_lng(A_idx, False)
-        A_highlight_coors = self._convert_from_id_to_lat_lng(self.removal["edges_reverse"], False)
-        A_count = draw_heatmap(A_coors, f"./figs/seq_A_{suffix}.html", colors=["blue"], no_points=False, weight=1, highlight=A_highlight_coors)
 
         planned_paths_coors = self._convert_from_id_to_lat_lng(self.gen_paths, False)
         gen_path_count = draw_heatmap(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * len(planned_paths_coors), no_points=False)

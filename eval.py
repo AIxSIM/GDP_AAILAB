@@ -66,6 +66,11 @@ if __name__ == "__main__":
             model.edit(removal={"regions" : [[[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]]},
                        G=dataset.G, direct_change=True)
 
+        evaluator = Evaluator(None, None, model, n_vertex, dataset=dataset,
+                              name=join(args.res_path, f"{args.model_name}_{args.save_name}_pure_gen"), sim_time=args.sim_time,
+                              A=new_A, removal=removal)
+        evaluator.A_vis(suffix=f"{args.model_name}_{args.save_name}")
+        ddd
         # gen_paths: list of lists (len: eval_num, element: list of nodes)
         # real_paths: list of lists (len: eval_num, element: list of nodes)
         start_time = time.time()
