@@ -75,4 +75,7 @@ def get_argparser() -> argparse.ArgumentParser:
 
     parser.add_argument("-shortest_data_path", type=str, help="shortest path", default="./shortest_path_data")
 
+    parser.add_argument("-except_scenario", type=str, help="except_scenario", default="1km-0")
+    parser.add_argument("-reverse_weight", type=float, help="reverse_weight", default=1)
+
     return parser

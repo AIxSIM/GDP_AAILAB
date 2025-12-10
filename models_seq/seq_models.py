@@ -323,13 +323,7 @@ class Restorer(nn.Module):
                 nlls[i + left] -= (prob[torch.arange(lengths[i] - 1), path[1:]] + 0.00001).log().sum()
         return nlls
 
-    def edit(self, removal=None, is_random=False, G=None, direct_change=False):  # removal : {"nodes": [xxx, yyy, zzz], "edges": [[XXX, YYY], [ZZZ, WWW]], "regions" : list of [[min_lat, max_lat], [min_lng, max_lng]]}
-        if (removal is None) and (not is_random):
-            exit("Please check edit in seq_models.py")
-
-        import pdb
-        pdb.set_trace()
-
+    def edit(self, removal=None, is_random=False, G=None, direct_change=False, lst_link=None, reverse_weight=1):  # removal : {"nodes": [xxx, yyy, zzz], "edges": [[XXX, YYY], [ZZZ, WWW]], "regions" : list of [[min_lat, max_lat], [min_lng, max_lng]]}
         if is_random:
             size = 0.01
             min_lat, max_lat = 999, -999
@@ -354,7 +348,18 @@ class Restorer(nn.Module):
 
             removal = {"regions": [removal_region]}
 
+        if lst_link is not None:
+            removal = {"edges": [], "edges_reverse": []}
+            for link in lst_link:
+                edge = next(((u, v, d) for u, v, d in G.edges(data=True) if d.get("link_id") == link), None)
+                if edge is None:
+                    print("Link {} not found".format(link))
+                    continue
+                removal["edges"].append((edge[0], edge[1]))
+                removal["edges_reverse"].append((edge[1], edge[0]))
+
         new_A = self.A.clone().detach()
+        new_A = (new_A != 0).to(new_A.dtype)
 
         if "nodes" in removal.keys():
             for node in removal["nodes"]:
@@ -362,7 +367,11 @@ class Restorer(nn.Module):
 
         if "edges" in removal.keys():
             for node1, node2 in removal["edges"]:
-                new_A[node1, node2], new_A[node2, node1] = 0, 0
+                new_A[node1, node2] = 0, 0
+
+        if "edges_reverse" in removal.keys():
+            for node1, node2 in removal["edges_reverse"]:
+                new_A[node1, node2] = reverse_weight * new_A[node1, node2]
 
         if "regions" in removal.keys():
             for node, data in G.nodes(data=True):
@@ -371,14 +380,13 @@ class Restorer(nn.Module):
                     if lat_range[0] <= lat <= lat_range[1] and lng_range[0] <= lng <= lng_range[1]:
                         new_A[node, :], new_A[:, node] = 0, 0
                         break
-        print(f'remove {(self.A.data - new_A.data).sum()/2} pairs.')
+        print(f'remove {(self.A.data - new_A.data).sum()} edges.')
 
         assert torch.all(new_A.transpose(0, 1) == new_A)
 
         if direct_change:
             self.A.data = new_A.data
-        else:
-            return new_A
+        return new_A, removal
 
     def sample_with_disc(self, n_samples: int, batch_traj_num=200, destroyer_new=None):
         assert hasattr(self, "gmm")

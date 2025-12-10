@@ -53,9 +53,16 @@ if __name__ == "__main__":
         model.applying_mask_intermediate = args.applying_mask_intermediate
         model.applying_mask_intermediate_temperature = args.applying_mask_intermediate_temperature
 
-        model.edit(removal={"regions": [[[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]]},
-                  G=dataset.G, direct_change=True)
-        if args.min_lat != -1:
+        if args.except_scenario is not None:
+            lst_link = []
+            with open(join(args.path, "kjwj_exceptional_scenario", "uni_direction_restrict_link_lists.txt"), "r") as f:
+                for line in f:
+                    if line.startswith(args.except_scenario):
+                        nums = line.split(":")[1].strip().split()
+                        lst_link = [int(n) for n in nums]
+                        break
+            new_A, removal = model.edit(G=dataset.G, direct_change=True, lst_link=lst_link, reverse_weight=args.reverse_weight)
+        elif args.min_lat != -1:
             model.edit(removal={"regions" : [[[args.min_lat, args.max_lat], [args.min_lng, args.max_lng]]]},
                        G=dataset.G, direct_change=True)
 
