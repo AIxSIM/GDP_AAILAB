@@ -63,6 +63,8 @@ def draw_heatmap(locations_series, html_path, colors=None, no_points=False, weig
     path_counts = dict(path_counts)
 
     for path, count in path_counts.items():
+        import pdb
+        pdb.set_trace()
         if highlight is not None:
             if path in highlight:
                 print("[Highlight] FIND!")
