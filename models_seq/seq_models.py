@@ -355,8 +355,8 @@ class Restorer(nn.Module):
                 if edge is None:
                     print("Link {} not found".format(link))
                     continue
-                removal["edges"].append([edge[0], edge[1]])
-                removal["edges_reverse"].append([edge[1], edge[0]])
+                removal["edges"].append((edge[0], edge[1]))
+                removal["edges_reverse"].append((edge[1], edge[0]))
 
         self.A = (self.A != 0).to(self.A.dtype)
         new_A = self.A.clone().detach()

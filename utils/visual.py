@@ -40,7 +40,7 @@ def draw_paths(paths, G, html_path: str, colors=None, no_points=False):
     draw_gps(multiple_locs, html_path=html_path, colors=colors, no_points=no_points)
 
 
-def draw_heatmap(locations_series, html_path, colors=None, no_points=False, weight=0.2):
+def draw_heatmap(locations_series, html_path, colors=None, no_points=False, weight=0.2, highlight=None):
     if type(locations_series[0]) is tuple:
         locations_series = [locations_series]
 
@@ -63,7 +63,13 @@ def draw_heatmap(locations_series, html_path, colors=None, no_points=False, weig
     path_counts = dict(path_counts)
 
     for path, count in path_counts.items():
-        color = "red" if colors is None else colors[0]
+        if highlight is not None:
+            if path in highlight:
+                color = "red"
+            else:
+                color = "blue"
+        else:
+            color = "red" if colors is None else colors[0]
         folium.PolyLine(path, weight=weight * count, color=color, opacity=0.7).add_to(m)
     if not os.path.exists(html_path):
         os.makedirs(os.path.dirname(html_path), exist_ok=True)
