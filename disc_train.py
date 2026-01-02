@@ -26,9 +26,6 @@ if __name__ == "__main__":
     n_vertex = dataset_org.n_vertex
     print(f"vertex: {n_vertex}")
 
-    dataset_org.A = dataset_org.A.bool().float()
-    dataset_new.A = dataset_new.A.bool().float()
-
     # before train, record the infob
     with open(join(args.model_path, f"{args.model_name}.info"), "w") as f:
         f.writelines(str(args))

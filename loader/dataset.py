@@ -318,6 +318,7 @@ class TrajFastShortestDataset(Dataset):
             print("loading")
             self.G = pickle.load(open(shrink_G_path, "rb"))
             self.A = pickle.load(open(shrink_A_path, "rb"))
+            self.A = self.A.bool().float()
             self.shrink_nonzero_dict = pickle.load(open(shrink_NZ_path, "rb"))
             try:
                 self.shortest_path_data = pickle.load(open(shrink_SP_path, "rb"))
