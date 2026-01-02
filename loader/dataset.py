@@ -307,7 +307,11 @@ class TrajFastShortestDataset(Dataset):
             shrink_G_path = join(shortest_data_path, f"{name}_shrink_G_{index}.pkl")
             shrink_A_path = join(shortest_data_path, f"{name}_shrink_A_{index}.ts")
             shrink_NZ_path = join(shortest_data_path, f"{name}_shrink_NZ_{index}.pkl")
-            shrink_SP_path = join(shortest_data_path, f"{name}_shrink_SP_{index}.pkl") # Real_path
+            try:
+                shrink_SP_path = join(shortest_data_path, f"{name}_shrink_SP_{index}.pkl") # Shortest_path
+            except:
+                print("!!! real path !!!")
+                shrink_SP_path = join(shortest_data_path, f"{name}_shrink_RP_{index}.pkl") # Real_path
         else:
             shrink_G_path = join(shortest_data_path, f"{name}_shrink_G.pkl")
             shrink_A_path = join(shortest_data_path, f"{name}_shrink_A.ts")
