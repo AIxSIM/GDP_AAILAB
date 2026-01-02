@@ -23,6 +23,10 @@ if __name__ == "__main__":
     date = "20190701" if "dj" in args.d_name else "dj"
     dataset_org = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True, index=args.shortest_org_idx, shortest_data_path=args.shortest_data_path)
     dataset_new = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True, index=args.shortest_new_idx, shortest_data_path=args.shortest_data_path)
+
+    import pdb
+    pdb.set_trace()
+
     n_vertex = dataset_org.n_vertex
     print(f"vertex: {n_vertex}")
 
