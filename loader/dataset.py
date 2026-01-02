@@ -294,7 +294,7 @@ class TrajFastDataset_SimTime(Dataset):
 """ For shortest path dataset """
 
 class TrajFastShortestDataset(Dataset):
-    def __init__(self, city, dates, path, device, is_pretrain, index=0, shortest_data_path=None, shuffle=True):
+    def __init__(self, city, dates, path, device, is_pretrain, index=None, shortest_data_path=None, shuffle=True):
         super().__init__()
         name = city
         self.device = device
@@ -303,10 +303,16 @@ class TrajFastShortestDataset(Dataset):
         if shortest_data_path is None:
             shortest_data_path = path
 
-        shrink_G_path = join(shortest_data_path, f"{name}_shrink_G.pkl")
-        shrink_A_path = join(shortest_data_path, f"{name}_shrink_A.ts")
-        shrink_NZ_path = join(shortest_data_path, f"{name}_shrink_NZ.pkl")
-        shrink_SP_path = join(shortest_data_path, f"{name}_shrink_RP.pkl") # Real_path
+        if index is not None:
+            shrink_G_path = join(shortest_data_path, f"{name}_shrink_G_{index}.pkl")
+            shrink_A_path = join(shortest_data_path, f"{name}_shrink_A_{index}.ts")
+            shrink_NZ_path = join(shortest_data_path, f"{name}_shrink_NZ_{index}.pkl")
+            shrink_SP_path = join(shortest_data_path, f"{name}_shrink_RP_{index}.pkl") # Real_path
+        else:
+            shrink_G_path = join(shortest_data_path, f"{name}_shrink_G.pkl")
+            shrink_A_path = join(shortest_data_path, f"{name}_shrink_A.ts")
+            shrink_NZ_path = join(shortest_data_path, f"{name}_shrink_NZ.pkl")
+            shrink_SP_path = join(shortest_data_path, f"{name}_shrink_RP.pkl") # Real_path
 
         if exists(shrink_G_path):
             print("loading")
