@@ -283,8 +283,6 @@ class Trainer_disc:
         self.model.train()
         iter, train_loss_avg = 0, 0
         kl_loss_avg, ce_loss_avg, con_loss_avg = 0, 0, 0
-        import pdb
-        pdb.set_trace()
         try:
             for epoch in range(n_epoch):
                 for xs, newxs in zip(trainloader_A, trainloader_new):
