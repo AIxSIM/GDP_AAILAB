@@ -75,14 +75,14 @@ class Discriminator(nn.Module):
             nn.Mish(), 
             nn.Linear(4 * time_dim, time_dim, device=device)
         )
-        self.adj_conv = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=5, stride=2, device=device),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=5, stride=2, device=device),
-            nn.ReLU(),
-            nn.AdaptiveAvgPool2d((1, 1))
-        )
-        self.adj_mlp = nn.Linear(64, time_dim, device=device)
+        # self.adj_conv = nn.Sequential(
+        #     nn.Conv2d(1, 32, kernel_size=5, stride=2, device=device),
+        #     nn.ReLU(),
+        #     nn.Conv2d(32, 64, kernel_size=5, stride=2, device=device),
+        #     nn.ReLU(),
+        #     nn.AdaptiveAvgPool2d((1, 1))
+        # )
+        # self.adj_mlp = nn.Linear(64, time_dim, device=device)
 
         # n_vertex denotes <end>,  n_vertex + 1 denotes <padding>
         if pretrain_path is not None:
@@ -126,9 +126,9 @@ class Discriminator(nn.Module):
         # xt_padded: shape b, h, each is a xt label
         # t: shape b
         t = self.time_mlp(t)
-        adj_feature = self.adj_conv(adj_matrix.unsqueeze(1))
-        adj_feature = self.adj_mlp(adj_feature.view(adj_feature.size(0), -1))
-        t = t + adj_feature
+        # adj_feature = self.adj_conv(adj_matrix.unsqueeze(1))
+        # adj_feature = self.adj_mlp(adj_feature.view(adj_feature.size(0), -1))
+        # t = t + adj_feature
 
         x = self.x_embedding(xt_padded)
         hiddens = []
