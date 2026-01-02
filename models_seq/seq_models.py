@@ -767,7 +767,7 @@ class Discriminator_module(nn.Module):
         newx_t = self.destroyer_new.diffusion(newxs, ts[batch_size_A:], ret_distr=False)
         xt_padded = pad_sequence(orgx_t+newx_t, batch_first=True, padding_value=0).long()
 
-        A_expanded = orgA.unsqueeze(0).repeat(batch_size_A, 1, 1).float()
+        A_expanded = newA.unsqueeze(0).repeat(batch_size_A, 1, 1).float()
         A_new_expanded = newA.unsqueeze(0).repeat(batch_size_new, 1, 1).float()
         adj_matrix = torch.cat((A_expanded, A_new_expanded), dim=0)
 
