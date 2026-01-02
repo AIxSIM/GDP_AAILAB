@@ -70,8 +70,8 @@ def get_argparser() -> argparse.ArgumentParser:
     parser.add_argument("-disc_path", type=str, help="discriminator path", default="./sets_disc")
     parser.add_argument("-disc_name", type=str, help="discriminator name")
     parser.add_argument("-newA_file", type=str, help="adjacency matrix path", default="None")
-    parser.add_argument("-shortest_org_idx", type=int, help="Shortest path index", default=999)
-    parser.add_argument("-shortest_new_idx", type=int, help="Shortest path index", default=0)
+    parser.add_argument("-shortest_org_idx", type=str, help="Shortest path index", default=999)
+    parser.add_argument("-shortest_new_idx", type=str, help="Shortest path index", default=0)
 
     parser.add_argument("-shortest_data_path", type=str, help="shortest path", default="./shortest_path_data")
 
