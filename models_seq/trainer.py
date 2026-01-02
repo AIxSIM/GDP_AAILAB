@@ -268,9 +268,9 @@ class Trainer_disc:
         optimizer = torch.optim.Adam(self.model.parameters(), lr)
 
         # split train test
-        train_num = int(0.8 * len(self.dataset))
+        train_num = int(0.8 * min(len(self.dataset), len(self.dataset_new)))
         train_dataset, test_dataset = random_split(self.dataset, [train_num , len(self.dataset) - train_num])
-        train_dataset_new, test_dataset_new = random_split(self.dataset_new, [train_num , len(self.dataset) - train_num])
+        train_dataset_new, test_dataset_new = random_split(self.dataset_new, [train_num , len(self.dataset_new) - train_num])
 
         trainloader_A = DataLoader(train_dataset, batch_size,
                                     collate_fn=lambda data: [torch.Tensor(each).to(self.device) for each in data])
