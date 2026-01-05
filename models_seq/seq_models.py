@@ -762,7 +762,9 @@ class Discriminator_module(nn.Module):
 
         # uniformly choose t
         # ts = torch.randint(1, self.max_T + 1, [batch_size]).to(self.device)
-        ts = torch.randint(1, 2, [batch_size]).to(self.device)
+        gamma = 2.0
+        u = torch.rand(batch_size, device=self.device)
+        ts = (u ** gamma * self.max_T).long() + 1
 
         orgx_t = self.destroyer_org.diffusion(orgxs, ts[:batch_size_A], ret_distr=False)
         newx_t = self.destroyer_new.diffusion(newxs, ts[batch_size_A:], ret_distr=False)
@@ -776,7 +778,11 @@ class Discriminator_module(nn.Module):
                                         ts.to(self.model_device), adj_matrix.to(self.model_device))
         loss = self.criterion(disc_logits, labels)
 
-        return loss
+        with torch.no_grad():
+            probs = torch.sigmoid(disc_logits)
+            preds = (probs >= 0.5).float()
+            acc = (preds == labels).float().mean()
+        return loss, acc
 
     def discriminate(self, xt_padded, lengths=None, ts=None, adj_matrix=None):
         # xt_padded: b, h value is vertex number

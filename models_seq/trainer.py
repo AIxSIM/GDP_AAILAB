@@ -283,11 +283,13 @@ class Trainer_disc:
         self.model.train()
         iter, train_loss_avg = 0, 0
         kl_loss_avg, ce_loss_avg, con_loss_avg = 0, 0, 0
+        acc_avg = 0.
         try:
             for epoch in range(n_epoch):
                 for xs, newxs in zip(trainloader_A, trainloader_new):
-                    loss = self.model(xs, newxs, self.dataset.A, self.dataset_new.A)
+                    loss, acc = self.model(xs, newxs, self.dataset.A, self.dataset_new.A)
                     train_loss_avg += loss.item()
+                    acc_avg += acc.item()
                     optimizer.zero_grad()
                     loss.backward()
                     # TODO: clip norm
@@ -300,8 +302,9 @@ class Trainer_disc:
                         # test_kl, test_ce, test_con = next(self.eval_test(testloader))
                         # test_loss = test_kl + test_ce + test_con
                         # print(f"e: {epoch}, i: {iter}, train loss: {train_loss_avg / denom: .4f}, (kl: {kl_loss_avg / denom: .4f}, ce: {ce_loss_avg / denom: .4f}, co: {con_loss_avg / denom: .4f}), test loss: {test_loss: .4f}, (kl: {test_kl: .4f}, ce: {test_ce: .4f}, co: {test_con: .4f})")
-                        print(f"e: {epoch}, i: {iter}, train loss: {train_loss_avg / denom: .4f}")
+                        print(f"e: {epoch}, i: {iter}, train loss: {train_loss_avg / denom: .4f}, acc: {acc_avg / denom: .4f}")
                         train_loss_avg = 0.
+                        acc_avg = 0.
                 model_name = f"{self.model_name}_iter_{iter}.pth"
                 torch.save(self.model, join(self.model_path, model_name))
         except KeyboardInterrupt as E:
