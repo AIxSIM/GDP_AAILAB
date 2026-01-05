@@ -761,7 +761,7 @@ class Discriminator_module(nn.Module):
         labels = torch.cat([labels_orgxs, labels_newxs], dim=0)  # shape: (9,)
 
         # uniformly choose t
-        ts = torch.randint(1, self.max_T + 1, [batch_size]).to(self.device)
+        ts = torch.randint(1, self.max_T + 1, [batch_size]).to(self.device) * 0. + 1.
 
         orgx_t = self.destroyer_org.diffusion(orgxs, ts[:batch_size_A], ret_distr=False)
         newx_t = self.destroyer_new.diffusion(newxs, ts[batch_size_A:], ret_distr=False)
