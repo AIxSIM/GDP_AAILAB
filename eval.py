@@ -36,7 +36,7 @@ if __name__ == "__main__":
         #     dataset = TrajFastDataset_SimTime(args.d_name, [date], args.path, device, is_pretrain=True)
         # elif args.sim_time == False:
         #     dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
-        dataset = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True, shuffle=False)
+        dataset = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True, shuffle=False, index=args.shortest_org_idx, shortest_data_path=args.shortest_data_path)
 
         n_vertex = dataset.n_vertex
         print(f"vertex: {n_vertex}")
