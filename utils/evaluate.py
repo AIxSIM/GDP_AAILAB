@@ -133,7 +133,7 @@ class Evaluator:
                 value1 = gen_path_count[key]#  / len(planned_paths_coors)
                 value2 = orig_path_count[key]#   / len(orig_path_count)
                 average = max((value1 - value2), (value2 - value1))
-                print(average)
+                # print(average)
                 average_mse += average
         average_mse = average_mse / len(gen_path_count)
         print('average_mse :', average_mse)
