@@ -470,9 +470,10 @@ class Restorer(nn.Module):
 
                 # guidance = destroyer_new.Q[t, :, xt.view(-1)].T / (self.Q[t, :, xt.view(-1)].T + 1e-8)
                 B, H = xt.shape
-                pred_probs_unorm = pred_probs_unorm.view(B, H, V)
-                pred_probs_unorm = pred_probs_unorm * guidance
-                pred_probs_unorm = pred_probs_unorm.view(B * H, V)
+                V_pred = pred_probs_unorm.shape[-1]
+                pred_probs_unorm = pred_probs_unorm.view(B, H, V_pred)
+                pred_probs_unorm = pred_probs_unorm * guidance[..., :V_pred]
+                pred_probs_unorm = pred_probs_unorm.view(B * H, V_pred)
                 #########################
 
                 sum_probs = torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
