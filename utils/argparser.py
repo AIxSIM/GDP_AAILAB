@@ -79,5 +79,6 @@ def get_argparser() -> argparse.ArgumentParser:
     parser.add_argument("-reverse_weight", type=float, help="reverse_weight", default=1)
 
     parser.add_argument("-guidance_scale", type=float, help="guidance_scale", default=1.)
+    parser.add_argument("-train_timestep_sampling", type=str, help="train_timestep_sampling", default="uniform")
 
     return parser

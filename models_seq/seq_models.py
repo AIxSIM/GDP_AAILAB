@@ -68,7 +68,7 @@ class Destroyer:
   
   
 class Restorer(nn.Module):
-    def __init__(self, eps_model: EPSM, destroyer: Destroyer, device):
+    def __init__(self, eps_model: EPSM, destroyer: Destroyer, device, args):
         super().__init__()
         self.n_vertex = destroyer.n_vertex
         self.eps_model = eps_model
@@ -83,6 +83,8 @@ class Restorer(nn.Module):
         self.Q = self.Q.to(self.device)
         self.max_deg = self.A.sum(1).max()
 
+        self.args = args
+
         self.applying_mask_intermediate = False
         self.applying_mask_intermediate_temperature = False
     
@@ -93,9 +95,23 @@ class Restorer(nn.Module):
             import pdb
             pdb.set_trace()
         lengths = torch.Tensor([x.shape[0] for x in xs]).long().to(self.device)
-        
-        # uniformly choose t
-        ts = torch.randint(1, self.max_T + 1, [batch_size]).to(self.device)
+
+        if self.args.train_timestep_sampling == 'uniform':
+            # uniformly choose t
+            ts = torch.randint(1, self.max_T + 1, [batch_size]).to(self.device)
+        elif self.args.train_timestep_sampling == 'early':
+            gamma = 0.7
+            t = torch.arange(1, self.max_T + 1, device=self.device)
+            probs = t.float().pow(-gamma)
+            probs = probs / probs.sum()
+            ts = torch.multinomial(probs, batch_size, replacement=True)
+        elif self.args.train_timestep_sampling == 'cosine':
+            t = torch.arange(1, self.max_T + 1, device=self.device)
+            probs = torch.sin(torch.pi * t / self.max_T)
+            probs = probs / probs.sum()
+            ts = torch.multinomial(probs, batch_size, replacement=True)
+        else:
+            raise NotImplementedError(f"[seq_models.py] train_timestep_sampling not implemented: {self.args.train_timestep_sampling}")
         
         x_t = self.destroyer.diffusion(xs, ts, ret_distr=False)
         xt_padded = pad_sequence(x_t, batch_first=True, padding_value=0).long()
