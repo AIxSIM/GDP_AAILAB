@@ -130,7 +130,16 @@ class Discriminator(nn.Module):
         # adj_feature = self.adj_mlp(adj_feature.view(adj_feature.size(0), -1))
         # t = t + adj_feature
 
-        x = self.x_embedding(xt_padded)
+        # x = self.x_embedding(xt_padded)
+        if xt_padded.dtype in (torch.float16, torch.float32, torch.float64):
+            # xt_padded: [B,H,V]
+            # embedding.weight: [V+2, D]
+            E = self.x_embedding.weight                      # [Vocab, D]
+            x = xt_padded @ E                                # [B,H,D]
+        else:
+            # xt_padded: [B,H]
+            x = self.x_embedding(xt_padded)                  # [B,H,D]
+
         hiddens = []
         for k, down_block in enumerate(self.down_blocks):
             x, h = down_block(x, lengths if k == 0 else None, t)

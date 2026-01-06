@@ -1,7 +1,7 @@
 from os.path import join
 import torch
 from loader.gen_graph import DataGenerator
-from loader.dataset import TrajFastDataset , TrajFastDataset_SimTime
+from loader.dataset import TrajFastDataset , TrajFastDataset_SimTime, TrajFastShortestDataset
 from utils.argparser import get_argparser
 from utils.evaluate import Evaluator
 import numpy as np
@@ -33,10 +33,11 @@ if __name__ == "__main__":
         dataset = DataGenerator(args.n_vertex, args.n_path, args.min_len, args.max_len, device, args.path, name)
     elif args.d_name != "":
         date = "20190701" if "dj" in args.d_name else "dj"
-        if args.sim_time == True:
-            dataset = TrajFastDataset_SimTime(args.d_name, [date], args.path, device, is_pretrain=True)
-        elif args.sim_time == False:
-            dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
+        # if args.sim_time == True:
+        #     dataset = TrajFastDataset_SimTime(args.d_name, [date], args.path, device, is_pretrain=True)
+        # elif args.sim_time == False:
+        #     dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
+        dataset = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True, shuffle=False, index=args.shortest_new_idx, shortest_data_path=args.shortest_data_path)
 
         n_vertex = dataset.n_vertex
         print(f"vertex: {n_vertex}")
@@ -66,7 +67,7 @@ if __name__ == "__main__":
         # gen_paths: list of lists (len: eval_num, element: list of nodes)
         # real_paths: list of lists (len: eval_num, element: list of nodes)
         start_time = time.time()
-        gen_paths = model.sample_with_disc(args.eval_num, args.batch_traj_num, destroyer_new=destroyer_new)
+        gen_paths = model.sample_with_disc(args.eval_num, args.batch_traj_num, destroyer_new=destroyer_new, disc=disc)
         print(f'Sampling time: {time.time() - start_time} seconds')
         real_paths = dataset.get_real_paths(args.eval_num)
 

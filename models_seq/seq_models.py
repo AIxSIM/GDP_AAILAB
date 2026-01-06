@@ -407,7 +407,7 @@ class Restorer(nn.Module):
             self.A.data = new_A.data
         return new_A, removal
 
-    def sample_with_disc(self, n_samples: int, batch_traj_num=200, destroyer_new=None):
+    def sample_with_disc(self, n_samples: int, batch_traj_num=200, destroyer_new=None, disc=None):
         assert hasattr(self, "gmm")
         lengths = self.gmm.sample(n_samples)[0].reshape(-1).astype(int)
         lengths = np.sort(lengths[lengths > 0])
@@ -416,30 +416,13 @@ class Restorer(nn.Module):
         n_batch = n_samples // batch_traj_num
         paths = []
         for b in range(n_batch):
-            paths.extend(self.sample_with_len_disc(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], destroyer_new=destroyer_new))
+            paths.extend(self.sample_with_len_disc(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], destroyer_new=destroyer_new, disc=disc))
         return paths
 
-    def sample_with_len_disc(self, lengths, ret_distr=False, xt=None, T=None, ret_trace=False, destroyer_new=None):
+    def sample_with_len_disc(self, lengths, ret_distr=False, xt=None, T=None, ret_trace=False, destroyer_new=None, disc=None):
         ############################################## YM
         applying_mask_intermediate = self.applying_mask_intermediate
         applying_mask_intermediate_temperature = self.applying_mask_intermediate_temperature
-        ## 1. No constrint
-        # self.A = torch.ones_like(self.A)
-
-        ## 2. Random constrarint
-        # upper_tri_prob = torch.bernoulli(torch.full((1470, 1470), 0.01)).int().to(self.A.device)
-        # upper_tri = torch.triu(upper_tri_prob)
-        # self.A = upper_tri + upper_tri.T - torch.diag(torch.diag(upper_tri))
-
-        ## 3. Only one node active
-        # self.A = torch.zeros((1470, 1470), dtype=torch.int).to(self.A.device)
-        # self.A[0, :] = 1
-        # self.A[:, 0] = 1
-
-        ## Check symmetric or not
-        # is_symmetric = torch.allclose(self.A, self.A.T)
-        # print("Is symmetric:", is_symmetric)
-        # print(self.A)
         ##############################################
 
         if ret_trace:
@@ -451,6 +434,8 @@ class Restorer(nn.Module):
         print('mask_int_temp: ', applying_mask_intermediate_temperature)
         n_samples = lengths.shape[0]
         horizon = max(lengths)
+        eps = 1e-12
+        guide_scale = 1.0
         if xt is None:
             xt = torch.randint(0, self.n_vertex, [n_samples, horizon]).to(self.device)
         else:
@@ -467,7 +452,24 @@ class Restorer(nn.Module):
                 pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                 ####### Guidance ########
-                guidance = destroyer_new.Q[t, :, xt.view(-1)].T / (self.Q[t, :, xt.view(-1)].T + 1e-8)
+                B, H = xt.shape
+                V = disc.n_vertex + 2  # disc embedding vocab
+                x_onehot = F.one_hot(xt, num_classes=V).float()
+                x_in = x_onehot.detach().requires_grad_(True)
+
+                with torch.enable_grad():
+                    disc_logits = disc.discriminate(x_in, lengths, ts, adj_matrix=None)  # [B]
+                    logP = torch.log(torch.sigmoid(disc_logits) + eps)  # [B]
+                    g = torch.autograd.grad(logP.sum(), x_in, create_graph=False)[0]  # [B,H,V]
+
+                v_cur = xt.unsqueeze(-1)  # [B,H,1]
+                g_cur = torch.gather(g, dim=-1, index=v_cur)  # [B,H,1]
+                logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
+                P_tilde = torch.exp(logP_tilde)  # [B,H,V]
+                P_tilde = P_tilde.clamp(min=eps, max=1 - eps)
+                guidance = P_tilde / (1 - P_tilde)
+
+                # guidance = destroyer_new.Q[t, :, xt.view(-1)].T / (self.Q[t, :, xt.view(-1)].T + 1e-8)
                 pred_probs_unorm = pred_probs_unorm * guidance
                 #########################
 
@@ -519,8 +521,17 @@ class Restorer(nn.Module):
                 try:
                     x[:, k] = torch.multinomial(x_next_masked_prob, 1).view(-1)
                 except:
-                    import pdb
-                    pdb.set_trace()
+                    bad_mask = x_next_masked_prob.sum(-1) <= 0  # shape: (batch,)
+                    good_mask = ~bad_mask
+                    if good_mask.any():
+                        x_next_masked_prob_good = x_next_masked_prob[good_mask]  # (good_batch, V)
+                        sampled_good = torch.multinomial(x_next_masked_prob_good, 1).view(-1)
+                        x[good_mask, k] = sampled_good
+                    if bad_mask.any():
+                        batch_size, vocab_size = x_next_masked_prob.shape
+                        random_idx = torch.randint(0, vocab_size, (bad_mask.sum(),), device=x.device)
+                        x[bad_mask, k] = random_idx
+                        lengths[bad_mask] = k - 1
             x_list = [x[k][:lengths[k]].cpu().tolist() for k in range(n_samples)]
             if ret_trace:
                 reverse_trace[0] = x_list
