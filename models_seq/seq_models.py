@@ -468,6 +468,9 @@ class Restorer(nn.Module):
                 P_tilde = P_tilde.clamp(min=eps, max=1 - eps)
                 guidance = P_tilde / (1 - P_tilde)
 
+                import pdb
+                pdb.set_trace()
+
                 sum_probs = torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                 pred_probs = pred_probs_unorm / sum_probs
                 mask = (sum_probs == 1e-8)[:, 0]
