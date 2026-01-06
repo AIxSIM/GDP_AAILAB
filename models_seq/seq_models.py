@@ -452,8 +452,7 @@ class Restorer(nn.Module):
                 pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                 ####### Guidance ########
-                B, H = xt.shape
-                V = disc.n_vertex + 2  # disc embedding vocab
+                V = disc.n_vertex  # disc embedding vocab
                 x_onehot = F.one_hot(xt, num_classes=V).float()
                 x_in = x_onehot.detach().requires_grad_(True)
 
@@ -470,7 +469,10 @@ class Restorer(nn.Module):
                 guidance = P_tilde / (1 - P_tilde)
 
                 # guidance = destroyer_new.Q[t, :, xt.view(-1)].T / (self.Q[t, :, xt.view(-1)].T + 1e-8)
+                B, H = xt.shape
+                pred_probs_unorm = pred_probs_unorm.view(B, H, V)
                 pred_probs_unorm = pred_probs_unorm * guidance
+                pred_probs_unorm = pred_probs_unorm.view(B * H, V)
                 #########################
 
                 sum_probs = torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
