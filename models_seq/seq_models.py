@@ -468,21 +468,24 @@ class Restorer(nn.Module):
                 P_tilde = P_tilde.clamp(min=eps, max=1 - eps)
                 guidance = P_tilde / (1 - P_tilde)
 
-                import pdb
-                pdb.set_trace()
+                sum_probs = torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                pred_probs = pred_probs_unorm / sum_probs
+                mask = (sum_probs == 1e-8)[:, 0]
+                pred_probs[mask] = 1.0 / pred_probs.shape[1]
 
                 # guidance = destroyer_new.Q[t, :, xt.view(-1)].T / (self.Q[t, :, xt.view(-1)].T + 1e-8)
                 B, H = xt.shape
-                V_pred = pred_probs_unorm.shape[-1]
-                pred_probs_unorm = pred_probs_unorm.view(B, H, V_pred)
-                pred_probs_unorm = pred_probs_unorm * guidance[..., :V_pred]
-                pred_probs_unorm = pred_probs_unorm.view(B * H, V_pred)
-                #########################
+                V_pred = pred_probs.shape[-1]
+                pred_probs = pred_probs.view(B, H, V_pred)
+                pred_probs = pred_probs * guidance[..., :V_pred]
+                pred_probs = pred_probs.view(B * H, V_pred)
 
                 sum_probs = torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                 pred_probs = pred_probs_unorm / sum_probs
                 mask = (sum_probs == 1e-8)[:, 0]
                 pred_probs[mask] = 1.0 / pred_probs.shape[1]
+                #########################
+
 
                 if applying_mask_intermediate:
                     pred_prob_ = rearrange(pred_probs, "(b h) c -> b h c", b=n_samples)
