@@ -452,7 +452,7 @@ class Restorer(nn.Module):
                 pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                 ####### Guidance ########
-                V = disc.n_vertex  # disc embedding vocab
+                V = disc.n_vertex + 2 # disc embedding vocab
                 x_onehot = F.one_hot(xt, num_classes=V).float()
                 x_in = x_onehot.detach().requires_grad_(True)
 
