@@ -28,7 +28,7 @@ if __name__ == "__main__":
     print(f"vertex: {n_vertex}")
 
     # before train, record the infob
-    with open(join(args.model_path, f"{args.model_name}.info"), "w") as f:
+    with open(join(args.disc_path, f"{args.model_name}.info"), "w") as f:
         f.writelines(str(args))
 
     # set model
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     disc_model = Discriminator(dataset_org.n_vertex, x_emb_dim=args.x_emb_dim, dims=dims, device=device,
                                hidden_dim=args.hidden_dim, pretrain_path=pretrain_path)
     model = Discriminator_module(disc_model, destroyer_org, destroyer_new, device)
-    trainer = Trainer_disc(model, dataset_org, args.model_path, args.model_name, dataset_new=dataset_new)
+    trainer = Trainer_disc(model, dataset_org, args.disc_path, args.model_name, dataset_new=dataset_new)
 
     trainer.train_gmm(gmm_samples=args.gmm_samples, n_comp=args.gmm_comp)
 
@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     trainer.train(args.n_epoch, args.bs, args.lr, remove_region=remove_region, remove_random=True)
     model.eval()
-    torch.save(model, join(args.model_path, f"{args.model_name}.pth"))
+    torch.save(model, join(args.disc_path, f"{args.model_name}.pth"))
     model.eval()
 
     # if args.method != "plan":
