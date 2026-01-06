@@ -15,12 +15,13 @@ class callback(CallbackAny2Vec):
     '''Callback to print loss after each epoch.'''
     def __init__(self):
         self.epoch = 0
-        self.losses = []
+        self.prev = 0.0
 
     def on_epoch_end(self, model):
-        loss = model.get_latest_training_loss()
-        self.losses.append(loss)
-        print('Loss after epoch {}: {}'.format(self.epoch, loss))
+        cum = model.get_latest_training_loss()
+        per_epoch = cum - self.prev
+        self.prev = cum
+        print(f"Epoch {self.epoch}: loss={per_epoch:.4f} (cum={cum:.4f})")
         self.epoch += 1
         
         
@@ -131,7 +132,7 @@ def get_node2vec(graph, embed_path, path_path, p=2, q=4):
         node2vec = Node2Vec(graph, embed_path, path_path, p, q)
         node_embed_size=100
         node2vec.train(sample_num=1000, sample_length=20, vector_size=node_embed_size, 
-                        alpha=0.025, window=5, min_count=5, max_vocab_size=None, 
+                        alpha=0.025, window=5, min_count=1, max_vocab_size=None,
                         sample=0.001, seed=1, workers=3, min_alpha=0.0001, sg=1, hs=0, 
                         negative=5, ns_exponent=0.75, cbow_mean=1, 
                         epochs=20, null_word=0, trim_rule=None, sorted_vocab=1, batch_words=10000, 
