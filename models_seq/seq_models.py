@@ -407,7 +407,7 @@ class Restorer(nn.Module):
             self.A.data = new_A.data
         return new_A, removal
 
-    def sample_with_disc(self, n_samples: int, batch_traj_num=200, destroyer_new=None, disc=None):
+    def sample_with_disc(self, n_samples: int, batch_traj_num=200, destroyer_new=None, disc=None, guidance_scale=1.):
         assert hasattr(self, "gmm")
         lengths = self.gmm.sample(n_samples)[0].reshape(-1).astype(int)
         lengths = np.sort(lengths[lengths > 0])
@@ -416,10 +416,10 @@ class Restorer(nn.Module):
         n_batch = n_samples // batch_traj_num
         paths = []
         for b in range(n_batch):
-            paths.extend(self.sample_with_len_disc(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], destroyer_new=destroyer_new, disc=disc))
+            paths.extend(self.sample_with_len_disc(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], destroyer_new=destroyer_new, disc=disc, guidance_scale=guidance_scale))
         return paths
 
-    def sample_with_len_disc(self, lengths, ret_distr=False, xt=None, T=None, ret_trace=False, destroyer_new=None, disc=None):
+    def sample_with_len_disc(self, lengths, ret_distr=False, xt=None, T=None, ret_trace=False, destroyer_new=None, disc=None, guidance_scale=1.):
         ############################################## YM
         applying_mask_intermediate = self.applying_mask_intermediate
         applying_mask_intermediate_temperature = self.applying_mask_intermediate_temperature
@@ -435,7 +435,6 @@ class Restorer(nn.Module):
         n_samples = lengths.shape[0]
         horizon = max(lengths)
         eps = 1e-12
-        guide_scale = 1.0
         if xt is None:
             xt = torch.randint(0, self.n_vertex, [n_samples, horizon]).to(self.device)
         else:
@@ -466,7 +465,7 @@ class Restorer(nn.Module):
                 logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
                 P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
                 log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
-                guidance = torch.exp(log_odds)
+                guidance = torch.exp(guidance_scale * log_odds)
 
                 sum_probs = torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                 pred_probs = pred_probs_unorm / sum_probs
@@ -485,7 +484,6 @@ class Restorer(nn.Module):
                 mask = (sum_probs == 1e-8)[:, 0]
                 pred_probs[mask] = 1.0 / pred_probs.shape[1]
                 #########################
-
 
                 if applying_mask_intermediate:
                     pred_prob_ = rearrange(pred_probs, "(b h) c -> b h c", b=n_samples)

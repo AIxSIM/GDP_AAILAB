@@ -78,4 +78,6 @@ def get_argparser() -> argparse.ArgumentParser:
     parser.add_argument("-except_scenario", type=str, help="except_scenario", default=None)
     parser.add_argument("-reverse_weight", type=float, help="reverse_weight", default=1)
 
+    parser.add_argument("-guidance_scale", type=float, help="guidance_scale", default=1.)
+
     return parser
