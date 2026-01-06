@@ -208,8 +208,8 @@ class Restorer(nn.Module):
         if T is None:
             T = self.max_T
         # use x0 directly
-        print('mask_int: ', applying_mask_intermediate)
-        print('mask_int_temp: ', applying_mask_intermediate_temperature)
+        # print('mask_int: ', applying_mask_intermediate)
+        # print('mask_int_temp: ', applying_mask_intermediate_temperature)
         n_samples = lengths.shape[0]
         horizon = max(lengths)
         if xt is None:
@@ -452,8 +452,8 @@ class Restorer(nn.Module):
         if T is None:
             T = self.max_T
         # use x0 directly
-        print('mask_int: ', applying_mask_intermediate)
-        print('mask_int_temp: ', applying_mask_intermediate_temperature)
+        # print('mask_int: ', applying_mask_intermediate)
+        # print('mask_int_temp: ', applying_mask_intermediate_temperature)
         n_samples = lengths.shape[0]
         horizon = max(lengths)
         eps = 1e-12
