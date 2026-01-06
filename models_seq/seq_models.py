@@ -468,6 +468,9 @@ class Restorer(nn.Module):
                 P_tilde = P_tilde.clamp(min=eps, max=1 - eps)
                 guidance = P_tilde / (1 - P_tilde)
 
+                import pdb
+                pdb.set_trace()
+
                 # guidance = destroyer_new.Q[t, :, xt.view(-1)].T / (self.Q[t, :, xt.view(-1)].T + 1e-8)
                 B, H = xt.shape
                 V_pred = pred_probs_unorm.shape[-1]
