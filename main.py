@@ -60,7 +60,7 @@ if __name__ == "__main__":
             eps_model = EPSM(dataset.n_vertex, x_emb_dim=args.x_emb_dim, dims=dims, device=device,
                             hidden_dim=args.hidden_dim, pretrain_path=pretrain_path)
             model = Restorer(eps_model, destroyer, device, args)
-            trainer = Trainer(model, dataset, args.model_path, args.model_name)
+            trainer = Trainer(model, dataset, args.model_path, args.model_name, args=args)
 
         ##################################################################################################################################################
 

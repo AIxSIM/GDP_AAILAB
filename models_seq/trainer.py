@@ -21,12 +21,13 @@ import logging
 
 
 class Trainer:
-    def __init__(self, model: nn.Module, dataset, model_path, model_name):
+    def __init__(self, model: nn.Module, dataset, model_path, model_name, args):
         self.model = model 
         self.device = model.device
         self.dataset = dataset
         self.model_path = model_path
         self.model_name = model_name
+        self.args = args
 
     def train(self, n_epoch, batch_size, lr, remove_region=None):
         torch.autograd.set_detect_anomaly(True)
@@ -72,7 +73,7 @@ class Trainer:
                     if ce_loss.item() < 60:
                         loss = kl_loss
                     else:
-                        loss = kl_loss + ce_loss + con_loss
+                        loss = kl_loss + self.args.lam_ce * ce_loss + self.args.lam_con * con_loss
                         # loss = kl_loss + ce_loss
                     train_loss_avg += loss.item()
                     kl_loss_avg += kl_loss.item()
