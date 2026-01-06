@@ -464,7 +464,7 @@ class Restorer(nn.Module):
                 v_cur = xt.unsqueeze(-1)  # [B,H,1]
                 g_cur = torch.gather(g, dim=-1, index=v_cur)  # [B,H,1]
                 logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
-                P_tilde_clamped = torch.exp(logP_tilde).clamp(min=eps, max=1 - eps)
+                P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
                 log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
                 guidance = torch.exp(log_odds)
 
