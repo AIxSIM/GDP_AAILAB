@@ -97,7 +97,7 @@ class Trainer:
                             f"(kl: {test_kl: .4f}, ce: {test_ce: .4f}, co: {test_con: .4f})"
                         )
                         train_loss_avg, kl_loss_avg, ce_loss_avg, con_loss_avg = 0., 0., 0., 0.
-                model_name = f"{self.model_name}_iter_{iter}.pth"
+                model_name = f"{self.model_name}_epoch_{epoch}.pth"
                 torch.save(self.model, join(self.model_path, model_name))
         except KeyboardInterrupt as E:
             print("Training interruptted, begin saving...")
@@ -305,7 +305,7 @@ class Trainer_disc:
                         print(f"e: {epoch}, i: {iter}, train loss: {train_loss_avg / denom: .4f}, acc: {acc_avg / denom: .4f}")
                         train_loss_avg = 0.
                         acc_avg = 0.
-                model_name = f"{self.model_name}_iter_{iter}.pth"
+                model_name = f"{self.model_name}_epoch_{epoch}.pth"
                 torch.save(self.model, join(self.model_path, model_name))
         except KeyboardInterrupt as E:
             print("Training interruptted, begin saving...")
