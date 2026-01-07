@@ -70,7 +70,7 @@ class Trainer:
             for epoch in range(n_epoch):
                 for xs in trainloader:
                     kl_loss, ce_loss, con_loss = self.model(xs)
-                    if ce_loss.item() < 60:
+                    if ce_loss.item() < 60 / 16:
                         loss = kl_loss
                     else:
                         loss = kl_loss + self.args.lam_ce * ce_loss + self.args.lam_con * con_loss
