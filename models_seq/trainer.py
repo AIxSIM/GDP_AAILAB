@@ -72,11 +72,11 @@ class Trainer:
                     kl_loss, ce_loss, con_loss = self.model(xs)
                     if ce_loss.item() < 60 / 16:
                         loss = kl_loss
-                    elif self.args.lam_ce == 0. & self.args.lam_con == 0.:
+                    elif (self.args.lam_ce == 0.) and (self.args.lam_con == 0.):
                         loss = kl_loss
-                    elif self.args.lam_ce == 0:
+                    elif self.args.lam_ce == 0.:
                         loss = kl_loss + self.args.lam_con * con_loss
-                    elif self.args.lam_con == 0:
+                    elif self.args.lam_con == 0.:
                         loss = kl_loss + self.args.lam_ce * ce_loss
                     else:
                         loss = kl_loss + self.args.lam_ce * ce_loss + self.args.lam_con * con_loss
