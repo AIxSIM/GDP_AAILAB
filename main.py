@@ -51,6 +51,8 @@ if __name__ == "__main__":
         suffix = args.d_name
 
         betas = torch.linspace(args.beta_lb, args.beta_ub, args.max_T)
+        import pdb
+        pdb.set_trace()
         destroyer = Destroyer(dataset.A, betas, args.max_T, device)
         pretrain_path = join(args.path, f"{args.d_name}_node2vec.pkl")
         dims = eval(args.dims)
