@@ -104,7 +104,7 @@ if __name__ == "__main__":
         res = evaluator.eval_all()
         print(res)
         with open(join(args.res_path, f"{args.model_name}_{args.save_name}.res"), "w") as f:
-            # f.writelines(str(res))
+            f.writelines(str(res))
 
     if args.method == "plan":
         raise NotImplementedError
