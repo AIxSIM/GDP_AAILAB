@@ -419,7 +419,7 @@ class Restorer(nn.Module):
 
                         with torch.enable_grad():
                             disc_logits = disc.discriminate(x_in, lengths, ts, adj_matrix=None)  # [B]
-                            logP = torch.log(torch.sigmoid(disc_logits) + eps)  # [B]
+                            logP = torch.log(torch.sigmoid(disc_logits) + 1e-12)  # [B]
                             g = torch.autograd.grad(logP.sum(), x_in, create_graph=False)[0]  # [B,H,V]
 
                         v_cur = xt_padded.unsqueeze(-1)  # [B,H,1]
