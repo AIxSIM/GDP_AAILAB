@@ -68,7 +68,6 @@ class Evaluator:
         mae = np.mean(np.abs(r - g))
 
         res_dict = {
-            "KLEV": 0.,
             "JSEV": edge_distr_js,
             "MSE": mse,
             "RMSE": rmse,
