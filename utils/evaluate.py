@@ -53,16 +53,27 @@ class Evaluator:
         # edge_distr_kl = Evaluator.KL_divergence(real_edge_distr.reshape(-1) + 1e-5, gen_edge_distr.reshape(-1) + 1e-5)
         # edge_distr_js = Evaluator.JS_divergence(real_edge_distr.reshape(-1) + 1e-5, gen_edge_distr.reshape(-1) + 1e-5)
 
-        p = real_edge_distr.reshape(-1)
-        q = gen_edge_distr.reshape(-1)
-        m = 0.5 * (p + q)
-        edge_distr_js = 0.5 * np.sum(rel_entr(p, m)) + 0.5 * np.sum(rel_entr(q, m))
-        
+        r = real_edge_distr.reshape(-1)
+        g = gen_edge_distr.reshape(-1)
+        m = 0.5 * (r + g)
+        edge_distr_js = 0.5 * np.sum(rel_entr(r, m)) + 0.5 * np.sum(rel_entr(g, m))
+
+        r_mean = r.mean()
+        rss = ((r - g) ** 2).sum()  # residual sum of squares
+        tss = ((r - r_mean) ** 2).sum()  # total sum of squares
+        r2 = 1 - rss / tss
+
+        mse = np.mean((r - g) ** 2)
+        rmse = np.sqrt(mse)
+        mae = np.mean(np.abs(r - g))
+
         res_dict = {
             "KLEV": 0.,
             "JSEV": edge_distr_js,
-            "real_edge_distr": real_edge_distr,
-            "gen_edge_distr": gen_edge_distr,
+            "MSE": mse,
+            "RMSE": rmse,
+            "MAE": mae,
+            "R2": r2,
         }
         
         plt.plot(real_len_distr)
@@ -134,28 +145,25 @@ class Evaluator:
         gen_path_count = draw_heatmap(planned_paths_coors, f"./figs/seq_gen_{suffix}.html", colors=["red"] * len(planned_paths_coors), no_points=False)
         orig_paths_coors = self._convert_from_id_to_lat_lng(self.real_paths, self.sim_time)
         orig_path_count = draw_heatmap(orig_paths_coors, f"./figs/seq_real_{suffix}.html", colors=["blue"] * len(orig_paths_coors), no_points=False)
-        average_mse = 0.
-        for key in gen_path_count.keys():
-            if key in orig_path_count:
-                value1 = gen_path_count[key]#  / len(planned_paths_coors)
-                value2 = orig_path_count[key]#   / len(orig_path_count)
-                average = max((value1 - value2), (value2 - value1))
-                # print(average)
-                average_mse += average
-        average_mse = average_mse / len(gen_path_count)
+
+        real_matrix = res['real_edge_distr']
+        gen_matrix = res['gen_edge_distr']
+
+        r = real_matrix.flatten()
+        g = gen_matrix.flatten()
+        r_mean = r.mean()
+        rss = ((r - g) ** 2).sum()  # residual sum of squares
+        tss = ((r - r_mean) ** 2).sum()  # total sum of squares
+        r2 = 1 - rss / tss
+
+        mse = np.mean((r - g) ** 2)
+        rmse = np.sqrt(mse)
+        mae = np.mean(np.abs(r - g))
+
+        res
+
         print('average_mse :', average_mse)
-
-        import pdb
-        pdb.set_trace()
-
-        x = np.array([gen_path_count[key] for key in gen_path_count if key in orig_path_count])
-        y = np.array([orig_path_count[key] for key in gen_path_count if key in orig_path_count])
-
-        mean_y = np.mean(y)
-        ss_total = np.sum((y - mean_y) ** 2)
-        ss_residual = np.sum((y - x) ** 2)
-        r_squared = 1 - (ss_residual / ss_total)
-        print('r_squared :', r_squared)
+        print('r_squared :', r2)
 
         return average_mse
 
