@@ -351,6 +351,71 @@ class Restorer(nn.Module):
                 nlls[i + left] -= (prob[torch.arange(lengths[i] - 1), path[1:]] + 0.00001).log().sum()
         return nlls
 
+    def eval_nll_fix(self, real_paths):
+        total = len(real_paths)
+        # nlls = np.zeros(total)
+        kl_all = []
+        batch_traj_num = 200
+        n_batch = (total + batch_traj_num - 1) // batch_traj_num
+
+        with torch.no_grad():
+            for k in range(n_batch):
+                left = k * batch_traj_num
+                right = min((k + 1) * batch_traj_num, total)
+                batch_size = right - left
+                xs = [torch.tensor(path).to(self.device) for path in real_paths[left: right]]
+
+                # lengths = [x.shape[0] for x in xs]
+                # ts = torch.tensor([self.max_T // 20]).repeat(batch_size).to(self.device)
+
+                for t in range(1, self.max_T + 1):
+                    ts = torch.full((batch_size,), t, device=self.device, dtype=torch.long)
+                    lengths = torch.Tensor([x.shape[0] for x in xs]).long().to(self.device)
+
+                    x_t = self.destroyer.diffusion(xs, ts, ret_distr=False)
+                    xt_padded = pad_sequence(x_t, batch_first=True, padding_value=0).long()
+                    xs_padded = pad_sequence(xs, batch_first=True, padding_value=0).long()
+                    horizon = xt_padded.shape[1]
+                    ts_padded = ts.view(-1, 1).repeat(1, horizon)
+
+                    # true_probs_unorm = Q_t @ x_t * \bar{E}_{t-1} @ x_0 both x_0 and x_t is categorical
+                    EtXt = self.Q[ts_padded.view(-1, ).to(self.device), :, xt_padded.view(-1).to(self.device)]
+                    true_probs_unorm = EtXt * self.matrices[ts_padded.view(-1, ) - 1, :, xs_padded.view(-1)].to(
+                        self.device)
+                    true_probs = true_probs_unorm / true_probs_unorm.sum(1, keepdim=True)
+                    true_probs = clamp_probs(true_probs)
+                    true_probs = rearrange(true_probs, "(b h) c -> b h c", h=horizon)
+
+                    x0_pred_logits = self.restore(xt_padded.to(self.model_device), lengths.to(self.model_device),
+                                                  ts.to(self.model_device))
+                    x0_pred_probs = F.softmax(x0_pred_logits, dim=-1)
+
+                    # pred_probs_unorm = E_t @ x_t * \bar{E}_{t-1} @ \hat{x}_0  x_0 is logits while x_t is categorical
+                    Et_minus_one_bar_hat_x0 = (
+                                self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1).to(self.des_device)).to(
+                        self.device)
+                    Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
+                    pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
+                    pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                    pred_logits = probs_to_logits(pred_probs)
+                    pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
+                    eps = 0.000001
+                    if t == 1:
+                        kl = torch.stack(
+                            [F.kl_div(pred_logits[u][:l] + eps, true_probs[k][:l], reduction="batchmean") for u, l in
+                             enumerate(lengths)])
+                    else:
+                        kl += torch.stack(
+                            [F.kl_div(pred_logits[u][:l] + eps, true_probs[k][:l], reduction="batchmean") for u, l in
+                             enumerate(lengths)])
+
+                # kl /= self.max_T
+                import pdb
+                pdb.set_trace()
+                kl_all += kl.detach().to("cpu").tolist()
+
+        return np.array(kl_all)
+
     def edit(self, removal=None, is_random=False, G=None, direct_change=False, lst_link=None, lst_opp=None, reverse_weight=1):  # removal : {"nodes": [xxx, yyy, zzz], "edges": [[XXX, YYY], [ZZZ, WWW]], "regions" : list of [[min_lat, max_lat], [min_lng, max_lng]]}
         if is_random:
             size = 0.01
