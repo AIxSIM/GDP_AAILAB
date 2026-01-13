@@ -69,7 +69,7 @@ class Evaluator:
         plt.savefig(f"{self.name}_a.pdf")
         plt.clf()        
         
-        return res_dict
+        return res_dict, real_edge_distr, gen_edge_distr
     
     def calculate_nll(self):
         nlls = self.model.eval_nll_fix(self.real_paths)
@@ -103,7 +103,7 @@ class Evaluator:
         A_highlight_coors = self._convert_from_id_to_lat_lng(self.removal["edges_reverse"], False)
         A_count = draw_heatmap(A_coors, f"./figs/seq_A_{suffix}.html", colors=["blue"], no_points=False, weight=3, highlight=A_highlight_coors)
 
-    def eval(self, suffix):
+    def eval(self, suffix, real_dist, gen_dist):
 
         # x_min, x_max = 36.361, 36.362
         # y_min, y_max = 127.3575, 127.3585
@@ -142,6 +142,9 @@ class Evaluator:
                 average_mse += average
         average_mse = average_mse / len(gen_path_count)
         print('average_mse :', average_mse)
+
+        import pdb
+        pdb.set_trace()
 
         x = np.array([gen_path_count[key] for key in gen_path_count if key in orig_path_count])
         y = np.array([orig_path_count[key] for key in gen_path_count if key in orig_path_count])
