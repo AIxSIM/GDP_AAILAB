@@ -85,7 +85,7 @@ if __name__ == "__main__":
         # real_paths: list of lists (len: eval_num, element: list of nodes)
         real_paths = dataset.get_real_paths(args.eval_num)
         start_time = time.time()
-        gen_paths = model.sample(args.eval_num, args.batch_traj_num, real_paths=real_paths)
+        gen_paths = model.sample(args.eval_num, args.batch_traj_num, real_paths=real_paths, bool_prefix=args.bool_prefix)
         print(f'Sampling time: {time.time() - start_time} seconds')
         line = f"{args.model_name}_{args.save_name}: {time.time() - start_time}\n"
         with open("./figs/result_log.txt", "a") as f:

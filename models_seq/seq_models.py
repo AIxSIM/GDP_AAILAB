@@ -166,7 +166,7 @@ class Restorer(nn.Module):
         x0_pred_logits = self.eps_model(xt_padded, lengths, ts)
         return x0_pred_logits
     
-    def sample(self, n_samples: int, batch_traj_num=200, real_paths=None):
+    def sample(self, n_samples: int, batch_traj_num=200, real_paths=None, bool_prefix=False):
         assert hasattr(self, "gmm")
         if real_paths is not None:
             lengths = np.array([len(x) for x in real_paths])
@@ -178,10 +178,14 @@ class Restorer(nn.Module):
         n_batch = n_samples // batch_traj_num
         paths = []
         for b in range(n_batch):
-            paths.extend(self.sample_with_len(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)]))
+            if bool_prefix:
+                prefix = np.array([x[0] for x in real_paths])
+                paths.extend(self.sample_with_len(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], prefix=prefix))
+            else:
+                paths.extend(self.sample_with_len(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)]))
         return paths
-    
-    def sample_with_len(self, lengths, ret_distr=False, xt=None, T=None, ret_trace=False):
+
+    def sample_with_len(self, lengths, ret_distr=False, xt=None, T=None, ret_trace=False, prefix=None):
         ############################################## YM
         applying_mask_intermediate = self.applying_mask_intermediate
         applying_mask_intermediate_temperature = self.applying_mask_intermediate_temperature
@@ -217,9 +221,16 @@ class Restorer(nn.Module):
             xt = torch.randint(0, self.n_vertex, [n_samples, horizon]).to(self.device)
         else:
             xt = xt.to(self.device)
+        import pdb
+        pdb.set_trace()
+        if prefix is not None:
+            prefix = torch.as_tensor(prefix, device=self.device, dtype=xt.dtype).unsqueeze(-1)
         with torch.no_grad():
             for t in range(T, 0, -1):
                 ts = torch.Tensor([t]).long().to(self.device).repeat(n_samples)
+                if prefix is not None:
+                    prefix_t = self.destroyer.diffusion(prefix, ts, ret_distr=False)
+                    xt[:, 0:1] = prefix_t
                 x0_pred_logits = self.restore(xt, lengths, ts) 
                 x0_pred_probs = F.softmax(x0_pred_logits, dim=-1)
                 # pred_probs_unorm = E_t @ x_t * \bar{E}_{t-1} @ \hat{x}_0  x_0 is logits while x_t is categorical
