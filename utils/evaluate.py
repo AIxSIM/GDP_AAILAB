@@ -47,7 +47,7 @@ class Evaluator:
             gen_len_distr[len(path)] += 1
                 
         real_edge_distr /= np.sum(real_edge_distr)
-        gen_edge_distr /= np.sum(real_edge_distr)
+        gen_edge_distr /= np.sum(gen_edge_distr)
         real_len_distr /= np.sum(real_len_distr)
         gen_len_distr /= np.sum(gen_len_distr)
         
