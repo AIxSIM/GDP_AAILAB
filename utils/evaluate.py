@@ -3,6 +3,7 @@ import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
 from utils.visual import draw_heatmap, draw_paths
+from scipy.special import rel_entr
 
 class Evaluator:
     def __init__(self, real_paths, gen_paths, model, n_vertex, dataset, name="e1", sim_time=False, A=None, removal=None) -> None:
@@ -51,12 +52,16 @@ class Evaluator:
         real_len_distr /= np.sum(real_len_distr)
         gen_len_distr /= np.sum(gen_len_distr)
         
-        edge_distr_kl = Evaluator.KL_divergence(real_edge_distr.reshape(-1) + 1e-5, gen_edge_distr.reshape(-1) + 1e-5)
-        edge_distr_js = Evaluator.JS_divergence(real_edge_distr.reshape(-1) + 1e-5, gen_edge_distr.reshape(-1) + 1e-5)
-    
+        # edge_distr_kl = Evaluator.KL_divergence(real_edge_distr.reshape(-1) + 1e-5, gen_edge_distr.reshape(-1) + 1e-5)
+        # edge_distr_js = Evaluator.JS_divergence(real_edge_distr.reshape(-1) + 1e-5, gen_edge_distr.reshape(-1) + 1e-5)
+
+        p = real_edge_distr.reshape(-1)
+        q = gen_edge_distr.reshape(-1)
+        m = 0.5 * (p + q)
+        edge_distr_js = 0.5 * np.sum(rel_entr(p, m)) + 0.5 * np.sum(rel_entr(q, m))
         
         res_dict = {
-            "KLEV": edge_distr_kl, 
+            "KLEV": 0.,
             "JSEV": edge_distr_js, 
         }
         

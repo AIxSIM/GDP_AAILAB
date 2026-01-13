@@ -8,6 +8,7 @@ from models_seq.disc_models import Discriminator
 from torch.distributions.utils import probs_to_logits, clamp_probs
 from collections import defaultdict
 import numpy as np
+import math
 
 
 class Destroyer:
@@ -409,6 +410,7 @@ class Restorer(nn.Module):
                             [F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
                              enumerate(lengths)])
                 # kl /= self.max_T
+                kl = kl / math.log(2)
                 kl_all += kl.detach().to("cpu").tolist()
 
         return np.array(kl_all)
