@@ -365,7 +365,7 @@ class Restorer(nn.Module):
                 nlls[i + left] -= (prob[torch.arange(lengths[i] - 1), path[1:]] + 0.00001).log().sum()
         return nlls
 
-    def eval_nll_fix(self, real_paths):
+    def eval_nll_fix(self, real_paths, disc=None):
         total = len(real_paths)
         # nlls = np.zeros(total)
         kl_all = []
@@ -410,6 +410,37 @@ class Restorer(nn.Module):
                         self.device)
                     Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                     pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
+
+                    ####### Guidance ########
+                    if disc is not None:
+                        V = disc.n_vertex + 2  # disc embedding vocab
+                        x_onehot = F.one_hot(xt_padded, num_classes=V).float()
+                        x_in = x_onehot.detach().requires_grad_(True)
+
+                        with torch.enable_grad():
+                            disc_logits = disc.discriminate(x_in, lengths, ts, adj_matrix=None)  # [B]
+                            logP = torch.log(torch.sigmoid(disc_logits) + eps)  # [B]
+                            g = torch.autograd.grad(logP.sum(), x_in, create_graph=False)[0]  # [B,H,V]
+
+                        v_cur = xt_padded.unsqueeze(-1)  # [B,H,1]
+                        g_cur = torch.gather(g, dim=-1, index=v_cur)  # [B,H,1]
+                        logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
+                        P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
+                        log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
+                        guidance = torch.exp(self.args.guidance_scale * log_odds)
+
+                        sum_probs = torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                        pred_probs = pred_probs_unorm / sum_probs
+                        mask = (sum_probs == 1e-8)[:, 0]
+                        pred_probs[mask] = 1.0 / pred_probs.shape[1]
+
+                        # guidance = destroyer_new.Q[t, :, xt.view(-1)].T / (self.Q[t, :, xt.view(-1)].T + 1e-8)
+                        B, H = xt_padded.shape
+                        V_pred = pred_probs.shape[-1]
+                        pred_probs_unorm = pred_probs.view(B, H, V_pred)
+                        pred_probs_unorm = pred_probs_unorm * guidance[..., :V_pred]
+                        pred_probs_unorm = pred_probs_unorm.view(B * H, V_pred)
+
                     pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                     pred_logits = probs_to_logits(pred_probs)
                     pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
@@ -503,7 +534,7 @@ class Restorer(nn.Module):
             self.A.data = new_A.data
         return new_A, removal
 
-    def sample_with_disc(self, n_samples: int, batch_traj_num=200, real_paths=None, destroyer_new=None, disc=None, guidance_scale=1.):
+    def sample_with_disc(self, n_samples: int, batch_traj_num=200, real_paths=None, bool_prefix=False, destroyer_new=None, disc=None, guidance_scale=1.):
         assert hasattr(self, "gmm")
         if real_paths is not None:
             lengths = np.array([len(x) for x in real_paths])
@@ -515,10 +546,14 @@ class Restorer(nn.Module):
         n_batch = n_samples // batch_traj_num
         paths = []
         for b in range(n_batch):
-            paths.extend(self.sample_with_len_disc(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], destroyer_new=destroyer_new, disc=disc, guidance_scale=guidance_scale))
+            if bool_prefix:
+                prefix = np.array([x[0] for x in real_paths])
+                paths.extend(self.sample_with_len(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], prefix=prefix[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)]))
+            else:
+                paths.extend(self.sample_with_len_disc(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], destroyer_new=destroyer_new, disc=disc, guidance_scale=guidance_scale))
         return paths
 
-    def sample_with_len_disc(self, lengths, ret_distr=False, xt=None, T=None, ret_trace=False, destroyer_new=None, disc=None, guidance_scale=1.):
+    def sample_with_len_disc(self, lengths, ret_distr=False, xt=None, T=None, ret_trace=False, destroyer_new=None, disc=None, guidance_scale=1., prefix=None):
         ############################################## YM
         applying_mask_intermediate = self.applying_mask_intermediate
         applying_mask_intermediate_temperature = self.applying_mask_intermediate_temperature
@@ -538,9 +573,15 @@ class Restorer(nn.Module):
             xt = torch.randint(0, self.n_vertex, [n_samples, horizon]).to(self.device)
         else:
             xt = xt.to(self.device)
+        if prefix is not None:
+            prefix = torch.as_tensor(prefix, device=self.device, dtype=xt.dtype).unsqueeze(-1)
         with torch.no_grad():
             for t in range(T, 0, -1):
                 ts = torch.Tensor([t]).long().to(self.device).repeat(n_samples)
+                if prefix is not None:
+                    prefix_t = self.destroyer.diffusion(prefix, ts, ret_distr=False)
+                    prefix_t = pad_sequence(prefix_t, batch_first=True, padding_value=0).long()
+                    xt[:, 0:1] = prefix_t
                 x0_pred_logits = self.restore(xt, lengths, ts)
                 x0_pred_probs = F.softmax(x0_pred_logits, dim=-1)
                 # pred_probs_unorm = E_t @ x_t * \bar{E}_{t-1} @ \hat{x}_0  x_0 is logits while x_t is categorical
@@ -577,12 +618,12 @@ class Restorer(nn.Module):
                 pred_probs = pred_probs.view(B, H, V_pred)
                 pred_probs = pred_probs * guidance[..., :V_pred]
                 pred_probs = pred_probs.view(B * H, V_pred)
+                #########################
 
                 sum_probs = torch.clamp(pred_probs.sum(1, keepdim=True), min=1e-8)
                 pred_probs = pred_probs / sum_probs
                 mask = (sum_probs == 1e-8)[:, 0]
                 pred_probs[mask] = 1.0 / pred_probs.shape[1]
-                #########################
 
                 if applying_mask_intermediate:
                     pred_prob_ = rearrange(pred_probs, "(b h) c -> b h c", b=n_samples)
@@ -614,10 +655,13 @@ class Restorer(nn.Module):
 
             x = torch.zeros_like(xt).long().to(self.device)
 
-            x_mask = x0_pred_probs[:, 0].clone()
-            if (self.A.sum(dim=1)==0).sum() != 0:
-                x_mask[:, self.A.sum(dim=1)==0] = 0.
-            x[:, 0] = torch.multinomial(x_mask, 1).view(-1)
+            if prefix is not None:
+                x[:, 0:1] = prefix
+            else:
+                x_mask = x0_pred_probs[:, 0].clone()
+                if (self.A.sum(dim=1) == 0).sum() != 0:
+                    x_mask[:, self.A.sum(dim=1) == 0] = 0.
+                x[:, 0] = torch.multinomial(x_mask, 1).view(-1)
 
             for k in range(1, horizon):
                 x_next_masked_prob = self.A[x[:, k - 1].view(-1)] * (x0_pred_probs[:, k]) # b * v

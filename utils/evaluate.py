@@ -83,8 +83,8 @@ class Evaluator:
         
         return res_dict
     
-    def calculate_nll(self):
-        nlls = self.model.eval_nll_fix(self.real_paths)
+    def calculate_nll(self, disc=None):
+        nlls = self.model.eval_nll_fix(self.real_paths, disc=disc)
         nll_min = np.min(nlls)
         nll_max = np.max(nlls)
         nll_avg = np.mean(nlls)
@@ -95,9 +95,9 @@ class Evaluator:
         }
         return res_dict
     
-    def eval_all(self):
+    def eval_all(self, disc=None):
         div_dict = self.calculate_divergences()
-        nll_dict = self.calculate_nll()
+        nll_dict = self.calculate_nll(disc=disc)
         return dict(div_dict, **nll_dict)
 
     def _convert_from_id_to_lat_lng(self, paths, sim_time=False):
