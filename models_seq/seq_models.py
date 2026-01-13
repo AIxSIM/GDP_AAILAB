@@ -180,7 +180,7 @@ class Restorer(nn.Module):
         for b in range(n_batch):
             if bool_prefix:
                 prefix = np.array([x[0] for x in real_paths])
-                paths.extend(self.sample_with_len(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], prefix=prefix))
+                paths.extend(self.sample_with_len(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], prefix=prefix[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)]))
             else:
                 paths.extend(self.sample_with_len(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)]))
         return paths
@@ -221,8 +221,6 @@ class Restorer(nn.Module):
             xt = torch.randint(0, self.n_vertex, [n_samples, horizon]).to(self.device)
         else:
             xt = xt.to(self.device)
-        import pdb
-        pdb.set_trace()
         if prefix is not None:
             prefix = torch.as_tensor(prefix, device=self.device, dtype=xt.dtype).unsqueeze(-1)
         with torch.no_grad():
@@ -230,6 +228,7 @@ class Restorer(nn.Module):
                 ts = torch.Tensor([t]).long().to(self.device).repeat(n_samples)
                 if prefix is not None:
                     prefix_t = self.destroyer.diffusion(prefix, ts, ret_distr=False)
+                    prefix_t = pad_sequence(prefix_t, batch_first=True, padding_value=0).long()
                     xt[:, 0:1] = prefix_t
                 x0_pred_logits = self.restore(xt, lengths, ts) 
                 x0_pred_probs = F.softmax(x0_pred_logits, dim=-1)
@@ -273,10 +272,13 @@ class Restorer(nn.Module):
 
             x = torch.zeros_like(xt).long().to(self.device)
 
-            x_mask = x0_pred_probs[:, 0].clone()
-            if (self.A.sum(dim=1)==0).sum() != 0:
-                x_mask[:, self.A.sum(dim=1)==0] = 0.
-            x[:, 0] = torch.multinomial(x_mask, 1).view(-1)
+            if prefix is not None:
+                x[:, 0:1] = prefix
+            else:
+                x_mask = x0_pred_probs[:, 0].clone()
+                if (self.A.sum(dim=1)==0).sum() != 0:
+                    x_mask[:, self.A.sum(dim=1)==0] = 0.
+                x[:, 0] = torch.multinomial(x_mask, 1).view(-1)
 
             for k in range(1, horizon):
                 x_next_masked_prob = self.A[x[:, k - 1].view(-1)] * (x0_pred_probs[:, k]) # b * v
