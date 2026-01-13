@@ -69,7 +69,7 @@ class Evaluator:
 
         res_dict = {
             "JSEV": edge_distr_js,
-            "MSE": mse,
+            # "MSE": mse,
             "RMSE": rmse,
             "MAE": mae,
             "R2": r2,
