@@ -146,24 +146,3 @@ class Evaluator:
         orig_paths_coors = self._convert_from_id_to_lat_lng(self.real_paths, self.sim_time)
         orig_path_count = draw_heatmap(orig_paths_coors, f"./figs/seq_real_{suffix}.html", colors=["blue"] * len(orig_paths_coors), no_points=False)
 
-        real_matrix = res['real_edge_distr']
-        gen_matrix = res['gen_edge_distr']
-
-        r = real_matrix.flatten()
-        g = gen_matrix.flatten()
-        r_mean = r.mean()
-        rss = ((r - g) ** 2).sum()  # residual sum of squares
-        tss = ((r - r_mean) ** 2).sum()  # total sum of squares
-        r2 = 1 - rss / tss
-
-        mse = np.mean((r - g) ** 2)
-        rmse = np.sqrt(mse)
-        mae = np.mean(np.abs(r - g))
-
-        res
-
-        print('average_mse :', average_mse)
-        print('r_squared :', r2)
-
-        return average_mse
-
