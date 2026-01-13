@@ -100,8 +100,8 @@ if __name__ == "__main__":
         else:
             evaluator = Evaluator(real_paths, gen_paths, model, n_vertex, dataset=dataset,
                                   name=join(args.res_path, f"{args.model_name}_{args.save_name}_pure_gen"), sim_time=args.sim_time,)
-        res, real_dist, gen_dist = evaluator.eval_all()
-        evaluator.eval(suffix=f"{args.model_name}_{args.save_name}", real_dist=real_dist, gen_dist=gen_dist)
+        res = evaluator.eval_all()
+        evaluator.eval(suffix=f"{args.model_name}_{args.save_name}", res=res)
         print(res)
         with open(join(args.res_path, f"{args.model_name}_{args.save_name}.res"), "w") as f:
             f.writelines(str(res))

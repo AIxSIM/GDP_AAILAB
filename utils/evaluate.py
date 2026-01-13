@@ -60,7 +60,9 @@ class Evaluator:
         
         res_dict = {
             "KLEV": 0.,
-            "JSEV": edge_distr_js, 
+            "JSEV": edge_distr_js,
+            "real_edge_distr": real_edge_distr,
+            "gen_edge_distr": gen_edge_distr,
         }
         
         plt.plot(real_len_distr)
@@ -69,7 +71,7 @@ class Evaluator:
         plt.savefig(f"{self.name}_a.pdf")
         plt.clf()        
         
-        return res_dict, real_edge_distr, gen_edge_distr
+        return res_dict
     
     def calculate_nll(self):
         nlls = self.model.eval_nll_fix(self.real_paths)
@@ -103,7 +105,7 @@ class Evaluator:
         A_highlight_coors = self._convert_from_id_to_lat_lng(self.removal["edges_reverse"], False)
         A_count = draw_heatmap(A_coors, f"./figs/seq_A_{suffix}.html", colors=["blue"], no_points=False, weight=3, highlight=A_highlight_coors)
 
-    def eval(self, suffix, real_dist, gen_dist):
+    def eval(self, suffix, res=None):
 
         # x_min, x_max = 36.361, 36.362
         # y_min, y_max = 127.3575, 127.3585
