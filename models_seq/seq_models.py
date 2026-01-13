@@ -402,16 +402,13 @@ class Restorer(nn.Module):
                     eps = 0.000001
                     if t == 1:
                         kl = torch.stack(
-                            [F.kl_div(pred_logits[u][:l] + eps, true_probs[k][:l], reduction="batchmean") for u, l in
+                            [F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
                              enumerate(lengths)])
                     else:
                         kl += torch.stack(
-                            [F.kl_div(pred_logits[u][:l] + eps, true_probs[k][:l], reduction="batchmean") for u, l in
+                            [F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
                              enumerate(lengths)])
-
                 # kl /= self.max_T
-                import pdb
-                pdb.set_trace()
                 kl_all += kl.detach().to("cpu").tolist()
 
         return np.array(kl_all)
