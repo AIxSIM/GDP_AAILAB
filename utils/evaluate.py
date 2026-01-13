@@ -26,6 +26,8 @@ class Evaluator:
         return scipy.stats.entropy(p, q)
     
     def calculate_divergences(self):
+        import pdb
+        pdb.set_trace()
         real_edge_distr = np.zeros((self.n_vertex, self.n_vertex))
         gen_edge_distr = np.zeros((self.n_vertex, self.n_vertex))
         
