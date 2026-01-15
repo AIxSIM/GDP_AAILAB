@@ -71,21 +71,29 @@ if __name__ == "__main__":
         # gen_paths: list of lists (len: eval_num, element: list of nodes)
         # real_paths: list of lists (len: eval_num, element: list of nodes)
         real_paths = dataset.get_real_paths(args.eval_num)
-        start_time = time.time()
-        gen_paths = model.sample_with_disc(args.eval_num, args.batch_traj_num, real_paths=real_paths, bool_prefix=args.bool_prefix, destroyer_new=destroyer_new, disc=disc, guidance_scale=args.guidance_scale)
-        print(f'Sampling time: {time.time() - start_time} seconds')
-        line = f"{args.model_name}_{args.save_name}: {time.time() - start_time}\n"
-        with open("./figs/result_log.txt", "a") as f:
-            f.write(line)
 
-        torch.save(gen_paths, join(args.model_path, f"DISC_{args.model_name}_{args.save_name}_gen_paths.pth"))
-        evaluator = Evaluator(real_paths, gen_paths, model, n_vertex, dataset=dataset,
-                              name=join(args.res_path, f"DISC_{args.model_name}_{args.save_name}_pure_gen"), sim_time=args.sim_time)
-        res = evaluator.eval_all(disc=disc)
-        evaluator.eval(suffix=f"DISC_{args.model_name}_{args.save_name}")
-        print(res)
-        with open(join(args.res_path, f"DISC_{args.model_name}_{args.save_name}.res"), "w") as f:
-            f.writelines(str(res))
+        if args.only_nll:
+            evaluator = Evaluator(real_paths, real_paths, model, n_vertex, dataset=dataset,
+                                  name=join(args.res_path, f"DISC_{args.model_name}_{args.save_name}_pure_gen"),
+                                  sim_time=args.sim_time)
+            res = evaluator.calculate_nll(disc=disc)
+            print(res)
+        else:
+            start_time = time.time()
+            gen_paths = model.sample_with_disc(args.eval_num, args.batch_traj_num, real_paths=real_paths, bool_prefix=args.bool_prefix, destroyer_new=destroyer_new, disc=disc, guidance_scale=args.guidance_scale)
+            print(f'Sampling time: {time.time() - start_time} seconds')
+            line = f"{args.model_name}_{args.save_name}: {time.time() - start_time}\n"
+            with open("./figs/result_log.txt", "a") as f:
+                f.write(line)
+
+            torch.save(gen_paths, join(args.model_path, f"DISC_{args.model_name}_{args.save_name}_gen_paths.pth"))
+            evaluator = Evaluator(real_paths, gen_paths, model, n_vertex, dataset=dataset,
+                                  name=join(args.res_path, f"DISC_{args.model_name}_{args.save_name}_pure_gen"), sim_time=args.sim_time)
+            res = evaluator.eval_all(disc=disc)
+            evaluator.eval(suffix=f"DISC_{args.model_name}_{args.save_name}")
+            print(res)
+            with open(join(args.res_path, f"DISC_{args.model_name}_{args.save_name}.res"), "w") as f:
+                f.writelines(str(res))
 
     if args.method == "plan":
         raise NotImplementedError
