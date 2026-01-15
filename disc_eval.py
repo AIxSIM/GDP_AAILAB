@@ -45,6 +45,9 @@ if __name__ == "__main__":
     if args.method != "plan":
         model = torch.load(join(args.model_path, f"{args.model_name}.pth"), map_location=device)
         disc = torch.load(join(args.disc_path, f"{args.disc_name}.pth"), map_location=device)
+
+        model.args = args
+
         model.device = device
         model.eps_model.device = device
         disc.device = device
