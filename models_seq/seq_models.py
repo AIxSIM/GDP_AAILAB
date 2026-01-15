@@ -411,9 +411,6 @@ class Restorer(nn.Module):
                     Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                     pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
-                    import pdb
-                    pdb.set_trace()
-
                     ####### Guidance ########
                     if disc is not None:
                         V = disc.n_vertex + 2  # disc embedding vocab
