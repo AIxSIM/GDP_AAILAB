@@ -452,8 +452,7 @@ class Restorer(nn.Module):
                              enumerate(lengths)])
                         print(torch.stack(
                             [F.kl_div(pred_logits_before[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
-                             enumerate(lengths)]))
-                        print(torch.stack(
+                             enumerate(lengths)]) - torch.stack(
                             [F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
                              enumerate(lengths)]))
                         print("="*50)
@@ -463,8 +462,7 @@ class Restorer(nn.Module):
                              enumerate(lengths)])
                         print(torch.stack(
                             [F.kl_div(pred_logits_before[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
-                             enumerate(lengths)]))
-                        print(torch.stack(
+                             enumerate(lengths)]) - torch.stack(
                             [F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
                              enumerate(lengths)]))
                         print("="*50)
