@@ -432,7 +432,7 @@ class Restorer(nn.Module):
                         pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
 
                         B, H = xt_padded.shape
-                        V_pred = pred_probs.shape[-1]
+                        V_pred = pred_probs_unorm.shape[-1]
                         pred_probs_unorm = pred_probs_unorm.view(B, H, V_pred)
                         pred_probs_unorm = pred_probs_unorm * guidance[..., :V_pred]
                         pred_probs_unorm = pred_probs_unorm.view(B * H, V_pred)
