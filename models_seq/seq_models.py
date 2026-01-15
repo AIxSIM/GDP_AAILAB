@@ -433,6 +433,8 @@ class Restorer(nn.Module):
                         guidance = torch.exp(self.args.guidance_scale * log_odds)
 
                         pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                        pred_logits_before = probs_to_logits(pred_probs_unorm)
+                        pred_logits_before = rearrange(pred_logits_before, "(b h) c -> b h c", h=horizon)
 
                         B, H = xt_padded.shape
                         V_pred = pred_probs_unorm.shape[-1]
@@ -448,10 +450,24 @@ class Restorer(nn.Module):
                         kl = torch.stack(
                             [F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
                              enumerate(lengths)])
+                        print(torch.stack(
+                            [F.kl_div(pred_logits_before[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
+                             enumerate(lengths)]))
+                        print(torch.stack(
+                            [F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
+                             enumerate(lengths)]))
+                        print("="*50)
                     else:
                         kl += torch.stack(
                             [F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
                              enumerate(lengths)])
+                        print(torch.stack(
+                            [F.kl_div(pred_logits_before[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
+                             enumerate(lengths)]))
+                        print(torch.stack(
+                            [F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
+                             enumerate(lengths)]))
+                        print("="*50)
                 # kl /= self.max_T
                 kl = kl / math.log(2)
                 kl_all += kl.detach().to("cpu").tolist()
