@@ -47,8 +47,6 @@ class Destroyer:
         # ts: [t_1, ..., t_n]
         # x_diffused: list of diffused labels in tensor
         # print(xs)
-        import pdb
-        pdb.set_trace()
         lengths = [x.shape[0] for x in xs]
         batch_size, horizon = len(lengths), max(lengths)
         if type(xs) is torch.Tensor and xs.dim() == 3:
