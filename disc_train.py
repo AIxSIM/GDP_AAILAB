@@ -47,7 +47,7 @@ if __name__ == "__main__":
     disc_model = Discriminator(dataset_org.n_vertex, x_emb_dim=args.x_emb_dim, dims=dims, device=device,
                                hidden_dim=args.hidden_dim, pretrain_path=pretrain_path)
     model = Discriminator_module(disc_model, destroyer_org, destroyer_new, device)
-    trainer = Trainer_disc(model, dataset_org, args.disc_path, args.model_name, dataset_new=dataset_new)
+    trainer = Trainer_disc(model, dataset_org, args.disc_path, args.model_name, dataset_new=dataset_new, args=args)
 
     trainer.train_gmm(gmm_samples=args.gmm_samples, n_comp=args.gmm_comp)
 

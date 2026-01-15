@@ -85,4 +85,5 @@ def get_argparser() -> argparse.ArgumentParser:
     parser.add_argument("-bool_prefix", help="bool_prefix", action="store_true")
     parser.add_argument("-only_nll", help="bool_prefix", action="store_true")
 
+    parser.add_argument("-save_step", type=int, help="save_step", default=1)
     return parser

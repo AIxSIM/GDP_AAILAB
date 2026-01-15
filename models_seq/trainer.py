@@ -262,13 +262,14 @@ class CustomPathBatchSampler(Sampler):
 
 
 class Trainer_disc:
-    def __init__(self, model: nn.Module, dataset, model_path, model_name, dataset_new=None):
+    def __init__(self, model: nn.Module, dataset, model_path, model_name, dataset_new=None, args=None):
         self.model = model
         self.device = model.device
         self.dataset = dataset
         self.dataset_new = dataset_new
         self.model_path = model_path
         self.model_name = model_name
+        self.args = args
 
     def train(self, n_epoch, batch_size, lr, remove_region=None, remove_random=False):
         torch.autograd.set_detect_anomaly(True)
@@ -312,8 +313,9 @@ class Trainer_disc:
                         print(f"e: {epoch}, i: {iter}, train loss: {train_loss_avg / denom: .4f}, acc: {acc_avg / denom: .4f}")
                         train_loss_avg = 0.
                         acc_avg = 0.
-                model_name = f"{self.model_name}_epoch_{epoch}.pth"
-                torch.save(self.model, join(self.model_path, model_name))
+                if epoch % self.args.save_step == 0:
+                    model_name = f"{self.model_name}_epoch_{epoch}.pth"
+                    torch.save(self.model, join(self.model_path, model_name))
         except KeyboardInterrupt as E:
             print("Training interruptted, begin saving...")
             self.model.eval()
