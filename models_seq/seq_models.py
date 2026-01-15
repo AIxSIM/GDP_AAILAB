@@ -429,15 +429,11 @@ class Restorer(nn.Module):
                         log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
                         guidance = torch.exp(self.args.guidance_scale * log_odds)
 
-                        sum_probs = torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
-                        pred_probs = pred_probs_unorm / sum_probs
-                        mask = (sum_probs == 1e-8)[:, 0]
-                        pred_probs[mask] = 1.0 / pred_probs.shape[1]
+                        pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
 
-                        # guidance = destroyer_new.Q[t, :, xt.view(-1)].T / (self.Q[t, :, xt.view(-1)].T + 1e-8)
                         B, H = xt_padded.shape
                         V_pred = pred_probs.shape[-1]
-                        pred_probs_unorm = pred_probs.view(B, H, V_pred)
+                        pred_probs_unorm = pred_probs_unorm.view(B, H, V_pred)
                         pred_probs_unorm = pred_probs_unorm * guidance[..., :V_pred]
                         pred_probs_unorm = pred_probs_unorm.view(B * H, V_pred)
 
