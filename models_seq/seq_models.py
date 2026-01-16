@@ -55,7 +55,7 @@ class Destroyer:
             x_distr = rearrange(x_distr, "c (b h) -> b h c", h=horizon)
             return x_distr
         else:
-            xs_padded = pad_sequence(xs, batch_first=True, padding_value=1.).to(self.device).long()
+            xs_padded = pad_sequence(xs, batch_first=True, padding_value=0.).to(self.device).long()
             # multiply one hot equivalent to pick the specific column
             # [1, 3, 2] -> [1,1,1..,1, 3,3,3...,3, 2,2,...2]
             ts_padded = ts.view(-1, 1).repeat(1, horizon).view(-1,)
@@ -444,18 +444,19 @@ class Restorer(nn.Module):
                     pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
                     eps = 0.000001
                     if t == 1:
-                        import pdb
-                        pdb.set_trace()
-                        kl = torch.stack(
-                            [F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
-                             enumerate(lengths)])
-                        kl = torch.stack(
-                            [F.cross_entropy(pred_logits[u][:l] + eps, xs[u][:l].long(), reduction="mean") for u, l in
-                             enumerate(lengths)])
+                        # kl = torch.stack([F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="sum") for u, l in enumerate(lengths)])
+                        kl = torch.stack([F.cross_entropy(pred_logits[u][:l] + eps, xs[u][:l].long(), reduction="sum") for u, l in enumerate(lengths)])
+                    elif t == self.max_T:
+                        kl += torch.stack([F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="sum") for u, l in enumerate(lengths)])
+
+                        # prior loss
+                        x_distr_padded = self.destroyer.diffusion(xs, ts, ret_distr=True)
+                        x_distr_padded = probs_to_logits(x_distr_padded)
+                        x_distr_padded = rearrange(x_distr_padded, "(b h) c -> b h c", h=horizon)
+                        true_prior = torch.ones_like(x_distr_padded) / x_distr_padded.shape[-1]
+                        kl += torch.stack([F.kl_div(x_distr_padded[u][:l] + eps, true_prior[u][:l], reduction="sum") for u, l in enumerate(lengths)])
                     else:
-                        kl += torch.stack(
-                            [F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
-                             enumerate(lengths)])
+                        kl += torch.stack([F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="sum") for u, l in enumerate(lengths)])
                 # kl /= self.max_T
                 kl = kl / math.log(2)
                 kl_all += kl.detach().to("cpu").tolist()
