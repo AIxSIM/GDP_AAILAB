@@ -444,8 +444,13 @@ class Restorer(nn.Module):
                     pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
                     eps = 0.000001
                     if t == 1:
+                        import pdb
+                        pdb.set_trace()
                         kl = torch.stack(
                             [F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in
+                             enumerate(lengths)])
+                        kl = torch.stack(
+                            [F.cross_entropy(pred_logits[u][:l] + eps, xs[u][:l].long(), reduction="mean") for u, l in
                              enumerate(lengths)])
                     else:
                         kl += torch.stack(
