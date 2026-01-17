@@ -53,14 +53,11 @@ if __name__ == "__main__":
         if args.beta_schedule == 'uniform':
             betas = torch.linspace(args.beta_lb, args.beta_ub, args.max_T)
         elif args.beta_schedule == 'front':
-            gamma = 3
-            u = torch.linspace(0, 1, args.max_T, device=device)
-            s = u ** (1.0 / gamma)
-            s = s - s.mean() + 0.5
-            s = s.clamp(0.0, 1.0)
-            betas = args.beta_lb + (args.beta_ub - args.beta_lb) * s
-            import pdb
-            pdb.set_trace()
+            uuu = torch.linspace(0, 1, args.max_T)
+            kkk = 2.0
+            sss = (torch.exp(kkk * uuu) - 1) / (torch.exp(kkk * torch.ones_like(uuu)) - 1)
+            betas = args.beta_lb + (args.beta_ub - args.beta_lb) * sss
+            betas.sum()
         else:
             raise NotImplementedError
         destroyer = Destroyer(dataset.A, betas, args.max_T, device)
