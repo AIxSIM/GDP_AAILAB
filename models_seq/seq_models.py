@@ -421,8 +421,6 @@ class Restorer(nn.Module):
                             disc_logits = disc.discriminate(x_in, lengths, ts, adj_matrix=None)  # [B]
                             logP = torch.log(torch.sigmoid(disc_logits) + 1e-12)  # [B]
                             g = torch.autograd.grad(logP.sum(), x_in, create_graph=False)[0]  # [B,H,V]
-                        import pdb
-                        pdb.set_trace()
                         v_cur = xt_padded.unsqueeze(-1)  # [B,H,1]
                         g_cur = torch.gather(g, dim=-1, index=v_cur)  # [B,H,1]
                         logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
@@ -430,7 +428,8 @@ class Restorer(nn.Module):
                         log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
                         guidance = torch.exp(self.args.guidance_scale * log_odds)
 
-                        pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                        # pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                        pred_probs_unorm = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
                         # pred_logits_before = probs_to_logits(pred_probs_unorm)
                         # pred_logits_before = rearrange(pred_logits_before, "(b h) c -> b h c", h=horizon)
 
@@ -440,7 +439,8 @@ class Restorer(nn.Module):
                         pred_probs_unorm = pred_probs_unorm * guidance[..., :V_pred]
                         pred_probs_unorm = pred_probs_unorm.view(B * H, V_pred)
 
-                    pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                    # pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                    pred_probs = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
                     pred_logits = probs_to_logits(pred_probs)
                     pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
                     eps = 0.000001
