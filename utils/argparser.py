@@ -85,6 +85,7 @@ def get_argparser() -> argparse.ArgumentParser:
     parser.add_argument("-beta_schedule", type=str, help="beta_schedule", default="uniform")
     parser.add_argument("-bool_prefix", help="bool_prefix", action="store_true")
     parser.add_argument("-only_nll", help="bool_prefix", action="store_true")
+    parser.add_argument("-ret_org", help="ret_org", action="store_true")
 
     parser.add_argument("-train_org_gen_path", type=str, help="train_gen_path", default=None)
     parser.add_argument("-train_new_gen_path", type=str, help="train_gen_path", default=None)

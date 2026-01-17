@@ -166,7 +166,7 @@ class Restorer(nn.Module):
         x0_pred_logits = self.eps_model(xt_padded, lengths, ts)
         return x0_pred_logits
     
-    def sample(self, n_samples: int, batch_traj_num=200, real_paths=None, bool_prefix=False):
+    def sample(self, n_samples: int, batch_traj_num=200, real_paths=None, bool_prefix=False, ret_org=False):
         assert hasattr(self, "gmm")
         if real_paths is not None:
             lengths = np.array([len(x) for x in real_paths])
@@ -180,12 +180,12 @@ class Restorer(nn.Module):
         for b in range(n_batch):
             if bool_prefix:
                 prefix = np.array([x[0] for x in real_paths])
-                paths.extend(self.sample_with_len(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], prefix=prefix[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)]))
+                paths.extend(self.sample_with_len(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], prefix=prefix[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], ret_org=ret_org))
             else:
-                paths.extend(self.sample_with_len(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)]))
+                paths.extend(self.sample_with_len(lengths[b * batch_traj_num: min((b + 1) * batch_traj_num, n_samples)], ret_org=ret_org))
         return paths
 
-    def sample_with_len(self, lengths, ret_distr=False, xt=None, T=None, ret_trace=False, prefix=None):
+    def sample_with_len(self, lengths, ret_distr=False, xt=None, T=None, ret_trace=False, prefix=None, ret_org=False):
         ############################################## YM
         applying_mask_intermediate = self.applying_mask_intermediate
         applying_mask_intermediate_temperature = self.applying_mask_intermediate_temperature
@@ -270,35 +270,36 @@ class Restorer(nn.Module):
                 if ret_trace:
                     reverse_trace[t] = [xt[k][:lengths[k]].cpu().tolist() for k in range(n_samples)]
 
-            x = torch.zeros_like(xt).long().to(self.device)
+            if not ret_org:
+                x = torch.zeros_like(xt).long().to(self.device)
 
-            if prefix is not None:
-                x[:, 0:1] = prefix
-            else:
-                x_mask = x0_pred_probs[:, 0].clone()
-                if (self.A.sum(dim=1)==0).sum() != 0:
-                    x_mask[:, self.A.sum(dim=1)==0] = 0.
-                x[:, 0] = torch.multinomial(x_mask, 1).view(-1)
+                if prefix is not None:
+                    x[:, 0:1] = prefix
+                else:
+                    x_mask = x0_pred_probs[:, 0].clone()
+                    if (self.A.sum(dim=1)==0).sum() != 0:
+                        x_mask[:, self.A.sum(dim=1)==0] = 0.
+                    x[:, 0] = torch.multinomial(x_mask, 1).view(-1)
 
-            for k in range(1, horizon):
-                x_next_masked_prob = self.A[x[:, k - 1].view(-1)] * (x0_pred_probs[:, k]) # b * v
-                random = x_next_masked_prob.sum(-1, keepdim=False) < 0.000001
-                x_next_masked_prob[random] = 1.
-                x_next_masked_prob = self.A[x[:, k - 1].view(-1)] * x_next_masked_prob
-                try:
-                    x[:, k] = torch.multinomial(x_next_masked_prob, 1).view(-1)
-                except:
-                    bad_mask = x_next_masked_prob.sum(-1) <= 0  # shape: (batch,)
-                    good_mask = ~bad_mask
-                    if good_mask.any():
-                        x_next_masked_prob_good = x_next_masked_prob[good_mask]  # (good_batch, V)
-                        sampled_good = torch.multinomial(x_next_masked_prob_good, 1).view(-1)
-                        x[good_mask, k] = sampled_good
-                    if bad_mask.any():
-                        batch_size, vocab_size = x_next_masked_prob.shape
-                        random_idx = torch.randint(0, vocab_size, (bad_mask.sum(),), device=x.device)
-                        x[bad_mask, k] = random_idx
-                        lengths[bad_mask] = k - 1
+                for k in range(1, horizon):
+                    x_next_masked_prob = self.A[x[:, k - 1].view(-1)] * (x0_pred_probs[:, k]) # b * v
+                    random = x_next_masked_prob.sum(-1, keepdim=False) < 0.000001
+                    x_next_masked_prob[random] = 1.
+                    x_next_masked_prob = self.A[x[:, k - 1].view(-1)] * x_next_masked_prob
+                    try:
+                        x[:, k] = torch.multinomial(x_next_masked_prob, 1).view(-1)
+                    except:
+                        bad_mask = x_next_masked_prob.sum(-1) <= 0  # shape: (batch,)
+                        good_mask = ~bad_mask
+                        if good_mask.any():
+                            x_next_masked_prob_good = x_next_masked_prob[good_mask]  # (good_batch, V)
+                            sampled_good = torch.multinomial(x_next_masked_prob_good, 1).view(-1)
+                            x[good_mask, k] = sampled_good
+                        if bad_mask.any():
+                            batch_size, vocab_size = x_next_masked_prob.shape
+                            random_idx = torch.randint(0, vocab_size, (bad_mask.sum(),), device=x.device)
+                            x[bad_mask, k] = random_idx
+                            lengths[bad_mask] = k - 1
             x_list = [x[k][:lengths[k]].cpu().tolist() for k in range(n_samples)]
             if ret_trace:
                 reverse_trace[0] = x_list
