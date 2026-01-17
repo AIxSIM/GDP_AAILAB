@@ -82,6 +82,7 @@ def get_argparser() -> argparse.ArgumentParser:
     parser.add_argument("-lam_ce", type=float, help="lam_ce", default=1.)
     parser.add_argument("-lam_con", type=float, help="lam_con", default=1.)
     parser.add_argument("-train_timestep_sampling", type=str, help="train_timestep_sampling", default="uniform")
+    parser.add_argument("-beta_schedule", type=str, help="beta_schedule", default="uniform")
     parser.add_argument("-bool_prefix", help="bool_prefix", action="store_true")
     parser.add_argument("-only_nll", help="bool_prefix", action="store_true")
 

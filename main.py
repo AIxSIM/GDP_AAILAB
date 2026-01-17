@@ -50,7 +50,19 @@ if __name__ == "__main__":
 
         suffix = args.d_name
 
-        betas = torch.linspace(args.beta_lb, args.beta_ub, args.max_T)
+        if args.beta_schedule == 'uniform':
+            betas = torch.linspace(args.beta_lb, args.beta_ub, args.max_T)
+        elif args.beta_schedule == 'front':
+            gamma = 3
+            u = torch.linspace(0, 1, args.max_T, device=device)
+            s = u ** (1.0 / gamma)
+            s = s - s.mean() + 0.5
+            s = s.clamp(0.0, 1.0)
+            betas = args.beta_lb + (args.beta_ub - args.beta_lb) * s
+            import pdb
+            pdb.set_trace()
+        else:
+            raise NotImplementedError
         destroyer = Destroyer(dataset.A, betas, args.max_T, device)
         pretrain_path = join(args.path, f"{args.d_name}_node2vec.pkl")
         dims = eval(args.dims)
