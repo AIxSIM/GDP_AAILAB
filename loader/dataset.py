@@ -294,7 +294,7 @@ class TrajFastDataset_SimTime(Dataset):
 """ For shortest path dataset """
 
 class TrajFastShortestDataset(Dataset):
-    def __init__(self, city, dates, path, device, is_pretrain, index=None, shortest_data_path=None, shuffle=True):
+    def __init__(self, city, dates, path, device, is_pretrain, index=None, shortest_data_path=None, shuffle=True, gen_path=None):
         super().__init__()
         name = city
         self.device = device
@@ -320,14 +320,16 @@ class TrajFastShortestDataset(Dataset):
             self.A = pickle.load(open(shrink_A_path, "rb"))
             self.A = self.A.bool().float()
             self.shrink_nonzero_dict = pickle.load(open(shrink_NZ_path, "rb"))
-            import pdb
-            pdb.set_trace()
-            try:
-                self.shortest_path_data = pickle.load(open(shrink_SP_path, "rb"))
-            except:
-                print("!!! real path !!!")
-                shrink_SP_path = join(shortest_data_path, f"{name}_shrink_RP_{index}.pkl") # Real_path
-                self.shortest_path_data = pickle.load(open(shrink_SP_path, "rb"))
+            if gen_path:
+                print(f"!!! gen path: {gen_path} !!!")
+                self.shortest_path_data = torch.load(gen_path)
+            else:
+                try:
+                    self.shortest_path_data = pickle.load(open(shrink_SP_path, "rb"))
+                except:
+                    print("!!! real path !!!")
+                    shrink_SP_path = join(shortest_data_path, f"{name}_shrink_RP_{index}.pkl") # Real_path
+                    self.shortest_path_data = pickle.load(open(shrink_SP_path, "rb"))
             if shuffle:
                 import random
                 random.shuffle(self.shortest_path_data)
