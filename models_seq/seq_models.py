@@ -270,7 +270,9 @@ class Restorer(nn.Module):
                 if ret_trace:
                     reverse_trace[t] = [xt[k][:lengths[k]].cpu().tolist() for k in range(n_samples)]
 
-            if not ret_org:
+            if ret_org:
+                x = xt.long().to(self.device)
+            else:
                 x = torch.zeros_like(xt).long().to(self.device)
 
                 if prefix is not None:
