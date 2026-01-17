@@ -57,7 +57,6 @@ if __name__ == "__main__":
             kkk = 2.0
             sss = (torch.exp(kkk * uuu) - 1) / (torch.exp(kkk * torch.ones_like(uuu)) - 1)
             betas = args.beta_lb + (args.beta_ub - args.beta_lb) * sss
-            betas.sum()
         else:
             raise NotImplementedError
         destroyer = Destroyer(dataset.A, betas, args.max_T, device)
