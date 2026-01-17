@@ -38,7 +38,15 @@ if __name__ == "__main__":
 
     suffix = args.d_name
 
-    betas = torch.linspace(args.beta_lb, args.beta_ub, args.max_T)
+    if args.beta_schedule == 'uniform':
+        betas = torch.linspace(args.beta_lb, args.beta_ub, args.max_T)
+    elif args.beta_schedule == 'front':
+        uuu = torch.linspace(0, 1, args.max_T)
+        kkk = 2.0
+        sss = (torch.exp(kkk * uuu) - 1) / (torch.exp(kkk * torch.ones_like(uuu)) - 1)
+        betas = args.beta_lb + (args.beta_ub - args.beta_lb) * sss
+    else:
+        raise NotImplementedError
     destroyer_org = Destroyer(dataset_org.A, betas, args.max_T, device)
     destroyer_new = Destroyer(dataset_new.A, betas, args.max_T, device)
     pretrain_path = join(args.path, f"{args.d_name}_node2vec.pkl")
