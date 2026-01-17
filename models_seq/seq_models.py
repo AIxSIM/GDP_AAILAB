@@ -421,7 +421,8 @@ class Restorer(nn.Module):
                             disc_logits = disc.discriminate(x_in, lengths, ts, adj_matrix=None)  # [B]
                             logP = torch.log(torch.sigmoid(disc_logits) + 1e-12)  # [B]
                             g = torch.autograd.grad(logP.sum(), x_in, create_graph=False)[0]  # [B,H,V]
-
+                        import pdb
+                        pdb.set_trace()
                         v_cur = xt_padded.unsqueeze(-1)  # [B,H,1]
                         g_cur = torch.gather(g, dim=-1, index=v_cur)  # [B,H,1]
                         logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
