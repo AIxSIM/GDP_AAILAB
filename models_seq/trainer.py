@@ -295,6 +295,8 @@ class Trainer_disc:
         try:
             for epoch in range(n_epoch):
                 for xs, newxs in zip(trainloader_A, trainloader_new):
+                    import pdb
+                    pdb.set_trace()
                     loss, acc = self.model(xs, newxs, self.dataset.A, self.dataset_new.A)
                     train_loss_avg += loss.item()
                     acc_avg += acc.item()
