@@ -489,7 +489,7 @@ class Restorer(nn.Module):
                     else:
                         kl += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
 
-                    print((kl - kl_before)[:7])
+                    print(t, weight[ts][0].item() , (kl - kl_before)[:7])
                 # kl /= self.max_T
                 kl = kl / math.log(2)
                 kl_before = kl_before / math.log(2)
