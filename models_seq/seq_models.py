@@ -414,6 +414,24 @@ class Restorer(nn.Module):
                     Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                     pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
+                    pred_probs = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
+                    pred_logits = probs_to_logits(pred_probs)
+                    pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
+                    if t == 1:
+                        # kl = torch.stack([F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
+                        kl_before = torch.stack([F.nll_loss(pred_logits[u][:l], xs[u][:l].long(), reduction="mean") for u, l in enumerate(lengths)])
+                    elif t == self.max_T:
+                        kl_before += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
+
+                        # prior loss
+                        x_distr_padded = self.destroyer.diffusion(xs, ts, ret_distr=True)
+                        x_distr_padded = probs_to_logits(x_distr_padded)
+                        x_distr_padded = rearrange(x_distr_padded, "(b h) c -> b h c", h=horizon)
+                        true_prior = torch.ones_like(x_distr_padded) / x_distr_padded.shape[-1]
+                        kl_before += torch.stack([F.kl_div(x_distr_padded[u][:l], true_prior[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
+                    else:
+                        kl_before += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
+
                     ####### Guidance ########
                     if disc is not None:
                         V = disc.n_vertex + 2  # disc embedding vocab
@@ -463,6 +481,11 @@ class Restorer(nn.Module):
                         kl += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
                 # kl /= self.max_T
                 kl = kl / math.log(2)
+                kl_before = kl_before / math.log(2)
+                print("="*50)
+                print(kl)
+                print(kl_before)
+                print("="*50)
                 kl_all += kl.detach().to("cpu").tolist()
 
         return np.array(kl_all)
