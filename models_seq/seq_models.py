@@ -372,6 +372,7 @@ class Restorer(nn.Module):
         total = len(real_paths)
         # nlls = np.zeros(total)
         kl_all = []
+        kl_before_all = []
         batch_traj_num = 200
         n_batch = (total + batch_traj_num - 1) // batch_traj_num
 
@@ -491,14 +492,15 @@ class Restorer(nn.Module):
                         kl += torch.stack([F.kl_div(x_distr_padded[u][:l], true_prior[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
                     else:
                         kl += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
-
-                    print(t, (kl - kl_before)[:7])
                 # kl /= self.max_T
                 kl = kl / math.log(2)
                 kl_before = kl_before / math.log(2)
                 print("="*50)
-                print(kl - kl_before)
+                print((kl - kl_before).mean())
                 kl_all += kl.detach().to("cpu").tolist()
+                kl_before_all += kl_before.detach().to("cpu").tolist()
+
+        print(np.array(kl_before_all).mean())
 
         return np.array(kl_all)
 
