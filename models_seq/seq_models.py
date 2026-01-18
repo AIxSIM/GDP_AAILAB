@@ -388,8 +388,8 @@ class Restorer(nn.Module):
                 # lengths = [x.shape[0] for x in xs]
                 # ts = torch.tensor([self.max_T // 20]).repeat(batch_size).to(self.device)
 
-                # for t in range(1, self.max_T + 1):
-                for t in range(self.max_T, 0, -1):
+                for t in range(1, self.max_T + 1):
+                # for t in range(self.max_T, 0, -1):
                     ts = torch.full((batch_size,), t, device=self.device, dtype=torch.long)
                     lengths = torch.Tensor([x.shape[0] for x in xs]).long().to(self.device)
 
@@ -423,9 +423,9 @@ class Restorer(nn.Module):
                     pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
                     if t == 1:
                         # kl = torch.stack([F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
-                        kl_before += torch.stack([F.nll_loss(pred_logits[u][:l], xs[u][:l].long(), reduction="mean") for u, l in enumerate(lengths)])
+                        kl_before = torch.stack([F.nll_loss(pred_logits[u][:l], xs[u][:l].long(), reduction="mean") for u, l in enumerate(lengths)])
                     elif t == self.max_T:
-                        kl_before = torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
+                        kl_before += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
 
                         # prior loss
                         x_distr_padded = self.destroyer.diffusion(xs, ts, ret_distr=True)
@@ -474,9 +474,9 @@ class Restorer(nn.Module):
                     eps = 0.000001
                     if t == 1:
                         # kl = torch.stack([F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
-                        kl += torch.stack([F.nll_loss(pred_logits[u][:l], xs[u][:l].long(), reduction="mean") for u, l in enumerate(lengths)])
+                        kl = torch.stack([F.nll_loss(pred_logits[u][:l], xs[u][:l].long(), reduction="mean") for u, l in enumerate(lengths)])
                     elif t == self.max_T:
-                        kl = torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
+                        kl += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
 
                         # prior loss
                         x_distr_padded = self.destroyer.diffusion(xs, ts, ret_distr=True)
