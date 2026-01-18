@@ -452,7 +452,7 @@ class Restorer(nn.Module):
                         P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
                         log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
                         weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
-                        guidance = torch.exp(weight[ts][0].item() * log_odds)
+                        guidance = torch.exp(weight[ts-1][0].item() * log_odds)
                         # guidance = torch.exp(log_odds)
                         disc.zero_grad()
 
@@ -489,7 +489,7 @@ class Restorer(nn.Module):
                     else:
                         kl += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
 
-                    print(t, weight[ts][0].item() , (kl - kl_before)[:7])
+                    print(t, (kl - kl_before)[:7])
                 # kl /= self.max_T
                 kl = kl / math.log(2)
                 kl_before = kl_before / math.log(2)
