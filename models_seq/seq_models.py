@@ -444,15 +444,15 @@ class Restorer(nn.Module):
 
                         with torch.enable_grad():
                             disc_logits = disc.discriminate(x_in, lengths, ts, adj_matrix=None)  # [B]
-                            logP = torch.log(torch.sigmoid(disc_logits) + 1e-12)  # [B]
+                            logP = self.args.guidance_scale * torch.log(torch.sigmoid(disc_logits) + 1e-12)  # [B]
                             g = torch.autograd.grad(logP.sum(), x_in, create_graph=False)[0]  # [B,H,V]
                         v_cur = xt_padded.unsqueeze(-1)  # [B,H,1]
                         g_cur = torch.gather(g, dim=-1, index=v_cur)  # [B,H,1]
-                        # logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
-                        logP_tilde = logP[:, None, None] # + (g - g_cur)  # [B,H,V]
+                        logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
                         P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
                         log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
-                        guidance = torch.exp(self.args.guidance_scale * log_odds)
+                        # guidance = torch.exp(self.args.guidance_scale * log_odds)
+                        guidance = torch.exp(log_odds)
                         disc.zero_grad()
 
                         # pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
