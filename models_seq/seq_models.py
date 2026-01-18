@@ -452,6 +452,7 @@ class Restorer(nn.Module):
                         P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
                         log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
                         guidance = torch.exp(self.args.guidance_scale * log_odds)
+                        disc.zero_grad()
 
                         # pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                         pred_probs_unorm = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
