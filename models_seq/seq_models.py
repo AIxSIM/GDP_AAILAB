@@ -451,7 +451,8 @@ class Restorer(nn.Module):
                         logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
                         P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
                         log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
-                        weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
+                        # weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
+                        weight = (self.max_T - t) / self.max_T
                         if t == 1:
                             guidance = torch.exp(log_odds)
                         else:
@@ -649,7 +650,8 @@ class Restorer(nn.Module):
                 P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
                 log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
 
-                weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
+                # weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
+                weight = (T - t) / T
                 if t == 1:
                     guidance = torch.exp(log_odds)
                 else:
