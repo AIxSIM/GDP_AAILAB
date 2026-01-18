@@ -375,6 +375,9 @@ class Restorer(nn.Module):
         batch_traj_num = 200
         n_batch = (total + batch_traj_num - 1) // batch_traj_num
 
+        disc.eval()
+        disc.requires_grad_(False)
+
         with torch.no_grad():
             for k in range(n_batch):
                 left = k * batch_traj_num
@@ -436,7 +439,7 @@ class Restorer(nn.Module):
                     if disc is not None:
                         V = disc.n_vertex + 2  # disc embedding vocab
                         x_onehot = F.one_hot(xt_padded, num_classes=V).float()
-                        x_in = x_onehot.detach().requires_grad_(True)
+                        x_in = x_onehot.clone().requires_grad_(True)
 
                         with torch.enable_grad():
                             disc_logits = disc.discriminate(x_in, lengths, ts, adj_matrix=None)  # [B]
@@ -459,6 +462,8 @@ class Restorer(nn.Module):
                         pred_probs_unorm = pred_probs_unorm.view(B, H, V_pred)
                         pred_probs_unorm = pred_probs_unorm * guidance[..., :V_pred]
                         pred_probs_unorm = pred_probs_unorm.view(B * H, V_pred)
+
+                        del g, logP, logP_tilde, P_tilde_clamped, disc_logits, x_in
 
                     # pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                     pred_probs = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
