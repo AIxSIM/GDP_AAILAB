@@ -389,7 +389,7 @@ class Restorer(nn.Module):
                 # ts = torch.tensor([self.max_T // 20]).repeat(batch_size).to(self.device)
 
                 # for t in range(1, self.max_T + 1):
-                for t in range(1, self.max_T + 1, -1):
+                for t in range(self.max_T, 0, -1):
                     ts = torch.full((batch_size,), t, device=self.device, dtype=torch.long)
                     lengths = torch.Tensor([x.shape[0] for x in xs]).long().to(self.device)
 
