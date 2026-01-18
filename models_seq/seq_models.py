@@ -473,9 +473,9 @@ class Restorer(nn.Module):
                     eps = 0.000001
                     if t == 1:
                         # kl = torch.stack([F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
-                        kl = torch.stack([F.nll_loss(pred_logits[u][:l], xs[u][:l].long(), reduction="mean") for u, l in enumerate(lengths)])
+                        kl += torch.stack([F.nll_loss(pred_logits[u][:l], xs[u][:l].long(), reduction="mean") for u, l in enumerate(lengths)])
                     elif t == self.max_T:
-                        kl += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
+                        kl = torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
 
                         # prior loss
                         x_distr_padded = self.destroyer.diffusion(xs, ts, ret_distr=True)
