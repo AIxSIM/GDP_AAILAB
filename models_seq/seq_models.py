@@ -437,7 +437,7 @@ class Restorer(nn.Module):
                         kl_before += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
 
                     ####### Guidance ########
-                    if (disc is not None) & (t < 10):
+                    if disc is not None:
                         V = disc.n_vertex + 2  # disc embedding vocab
                         x_onehot = F.one_hot(xt_padded, num_classes=V).float()
                         x_in = x_onehot.clone().requires_grad_(True)
