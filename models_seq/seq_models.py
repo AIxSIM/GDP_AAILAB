@@ -451,9 +451,8 @@ class Restorer(nn.Module):
                         logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
                         P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
                         log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
-                        import pdb
-                        pdb.set_trace()
-                        guidance = torch.exp(self.args.guidance_scale * log_odds)
+                        weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
+                        guidance = torch.exp(weight[ts] * log_odds)
                         disc.zero_grad()
 
                         # pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
