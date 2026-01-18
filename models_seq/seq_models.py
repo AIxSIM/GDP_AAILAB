@@ -372,7 +372,7 @@ class Restorer(nn.Module):
         total = len(real_paths)
         # nlls = np.zeros(total)
         kl_all = []
-        batch_traj_num = 200
+        batch_traj_num = 20
         n_batch = (total + batch_traj_num - 1) // batch_traj_num
 
         disc.eval()
