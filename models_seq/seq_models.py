@@ -483,9 +483,7 @@ class Restorer(nn.Module):
                 kl = kl / math.log(2)
                 kl_before = kl_before / math.log(2)
                 print("="*50)
-                print(kl)
-                print(kl_before)
-                print("="*50)
+                print(kl - kl_before)
                 kl_all += kl.detach().to("cpu").tolist()
 
         return np.array(kl_all)
