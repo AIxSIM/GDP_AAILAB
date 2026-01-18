@@ -456,7 +456,7 @@ class Restorer(nn.Module):
                         if t == 1:
                             guidance = torch.exp(log_odds)
                         else:
-                            guidance = torch.exp(weight[ts-1][:, None, None] * log_odds)
+                            guidance = torch.exp(weight[ts-1][:, None, None] ** 2 * log_odds)
                         # guidance = torch.exp(log_odds)
                         disc.zero_grad()
 
