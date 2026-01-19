@@ -434,11 +434,11 @@ class Restorer(nn.Module):
 
                     n_samples = lengths.shape[0]
                     x0_pred_probs_rearrange = rearrange(x0_pred_probs, "b h c -> (b h) c", b=n_samples)
-                    x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=10, replacement=True)
-                    x0_sample = rearrange(x0_sample, "(b h) n -> b h n", b=n_samples, n=10)  # torch.Size([n_samples, horizon])
+                    x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=100, replacement=True)
+                    x0_sample = rearrange(x0_sample, "(b h) n -> b h n", b=n_samples, n=100)  # torch.Size([n_samples, horizon])
                     # Et_minus_one_bar_hat_x0 = self.matrices[t-1, x0_sample.view(-1)]
                     Et_minus_one_bar_hat_x0 = self.matrices[t - 1, x0_sample.view(-1)]
-                    Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "(b h n) d -> (b h) n d", b=n_samples, n=10)
+                    Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "(b h n) d -> (b h) n d", b=n_samples, n=100)
                     Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.mean(dim=1)
                     pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
