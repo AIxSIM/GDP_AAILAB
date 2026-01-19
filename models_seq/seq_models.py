@@ -433,32 +433,40 @@ class Restorer(nn.Module):
                     # pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                     n_samples = lengths.shape[0]
+                    b, h, c = x0_pred_probs.shape
+                    n = 200
                     x0_pred_probs_rearrange = rearrange(x0_pred_probs, "b h c -> (b h) c", b=n_samples)
-                    x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=200, replacement=True)
-                    x0_sample = rearrange(x0_sample, "(b h) n -> b h n", b=n_samples, n=200)  # torch.Size([n_samples, horizon])
-                    # Et_minus_one_bar_hat_x0 = self.matrices[t-1, x0_sample.view(-1)]
-                    Et_minus_one_bar_hat_x0 = self.matrices[t - 1, x0_sample.view(-1)]
-                    Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "(b h n) d -> (b h) n d", b=n_samples, n=200)
-                    Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.mean(dim=1)
+                    x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=n, replacement=True)
+                    x0_sample = rearrange(x0_sample, "(b h) n -> b h n", b=n_samples, n=n)  # torch.Size([n_samples, horizon])
+                    x0_sample_probs = F.one_hot(x0_sample, num_classes=c).float().mean(dim=2)
+
+                    Et_minus_one_bar_hat_x0 = (
+                                self.matrices[ts - 1] @ x0_sample_probs.transpose(2, 1).to(self.des_device)).to(
+                        self.device)
+                    Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
+
+                    # Et_minus_one_bar_hat_x0 = self.matrices[t - 1, x0_sample.view(-1)]
+                    # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "(b h n) d -> (b h) n d", b=n_samples, n=n)
+                    # Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.mean(dim=1)
                     pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                     pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                     pred_logits = probs_to_logits(pred_probs)
                     pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
-                    # if t == 1:
-                    #     # kl = torch.stack([F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
-                    #     kl_before = torch.stack([F.nll_loss(pred_logits[u][:l], xs[u][:l].long(), reduction="mean") for u, l in enumerate(lengths)])
-                    # elif t == self.max_T:
-                    #     kl_before += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
-                    #
-                    #     # prior loss
-                    #     x_distr_padded = self.destroyer.diffusion(xs, ts, ret_distr=True)
-                    #     x_distr_padded = probs_to_logits(x_distr_padded)
-                    #     x_distr_padded = rearrange(x_distr_padded, "(b h) c -> b h c", h=horizon)
-                    #     true_prior = torch.ones_like(x_distr_padded) / x_distr_padded.shape[-1]
-                    #     kl_before += torch.stack([F.kl_div(x_distr_padded[u][:l], true_prior[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
-                    # else:
-                    #     kl_before += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
+                    if t == 1:
+                        # kl = torch.stack([F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
+                        kl_before = torch.stack([F.nll_loss(pred_logits[u][:l], xs[u][:l].long(), reduction="mean") for u, l in enumerate(lengths)])
+                    elif t == self.max_T:
+                        kl_before += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
+
+                        # prior loss
+                        x_distr_padded = self.destroyer.diffusion(xs, ts, ret_distr=True)
+                        x_distr_padded = probs_to_logits(x_distr_padded)
+                        x_distr_padded = rearrange(x_distr_padded, "(b h) c -> b h c", h=horizon)
+                        true_prior = torch.ones_like(x_distr_padded) / x_distr_padded.shape[-1]
+                        kl_before += torch.stack([F.kl_div(x_distr_padded[u][:l], true_prior[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
+                    else:
+                        kl_before += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
 
                     ####### Guidance ########
                     if disc is not None:
@@ -517,13 +525,13 @@ class Restorer(nn.Module):
                         kl += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
                 # kl /= self.max_T
                 kl = kl / math.log(2)
-                # kl_before = kl_before / math.log(2)
+                kl_before = kl_before / math.log(2)
                 print("="*50)
-                # print((kl - kl_before).mean())
+                print((kl - kl_before).mean())
                 kl_all += kl.detach().to("cpu").tolist()
-                # kl_before_all += kl_before.detach().to("cpu").tolist()
+                kl_before_all += kl_before.detach().to("cpu").tolist()
 
-        # print(np.array(kl_before_all).mean())
+        print(np.array(kl_before_all).mean())
 
         return np.array(kl_all)
 
