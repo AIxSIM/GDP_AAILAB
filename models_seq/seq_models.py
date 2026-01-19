@@ -481,7 +481,7 @@ class Restorer(nn.Module):
                         bn = b * n
 
                         disc_logits_flat = torch.empty((bn,), device=x0_sample.device, dtype=torch.float32)
-                        micro_b = 32
+                        micro_b = b * 20
 
                         x0_seq_all = x0_sample.permute(0, 2, 1).reshape(bn, h)  # [b*n, h]
                         lengths_rep_all = lengths.repeat_interleave(n)  # [b*n]
