@@ -91,8 +91,8 @@ class Discriminator(nn.Module):
             if x_emb_dim != node2vec[0].shape[0]:
                 print("Use pretrained embed dims")
             x_emb_dim = node2vec[0].shape[0]
-            # nodeemb = torch.zeros(n_vertex + 2, x_emb_dim)
-            nodeemb = torch.zeros(n_vertex, x_emb_dim)
+            nodeemb = torch.zeros(n_vertex + 2, x_emb_dim)
+            # nodeemb = torch.zeros(n_vertex, x_emb_dim)
             for k in node2vec:
                 nodeemb[k] = torch.from_numpy(node2vec[k])
             self.x_embedding = nn.Embedding.from_pretrained(nodeemb, freeze=False).to(device)
