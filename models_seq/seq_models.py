@@ -1072,7 +1072,8 @@ class Discriminator_module(nn.Module):
         labels = torch.cat([labels_orgxs, labels_newxs], dim=0)  # shape: (9,)
 
         # uniformly choose t
-        ts = torch.randint(1, self.max_T + 1, [batch_size]).to(self.device)
+        # ts = torch.randint(1, self.max_T + 1, [batch_size]).to(self.device)
+        ts = torch.randint(1, 2, [batch_size]).to(self.device)
         # gamma = 7.0
         # u = torch.rand(batch_size, device=self.device)
         # ts = (u ** gamma * self.max_T).long() + 1
