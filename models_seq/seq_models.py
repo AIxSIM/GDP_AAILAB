@@ -431,18 +431,23 @@ class Restorer(nn.Module):
                     #     self.device)
                     # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                     # pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
-                    import pdb
-                    pdb.set_trace()
-                    x0_pred_probs_rearrange = rearrange(x0_pred_probs, "b h c -> (b h) c", h=horizon)
+
+
+                    # Et_minus_one_bar_hat_x0 = self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1)
+                    # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
+                    # pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
+
+                    n_samples = lengths.shape[0]
+                    x0_pred_probs_rearrange = rearrange(x0_pred_probs, "b h c -> (b h) c", b=n_samples)
                     x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=10, replacement=True)
-                    x0_sample = rearrange(x0_sample, "(b h) n -> b h n", h=horizon, n=10)  # torch.Size([n_samples, horizon])
+                    x0_sample = rearrange(x0_sample, "(b h) n -> b h n", b=n_samples, n=10)  # torch.Size([n_samples, horizon])
                     # Et_minus_one_bar_hat_x0 = self.matrices[t-1, x0_sample.view(-1)]
                     Et_minus_one_bar_hat_x0 = self.matrices[t - 1, x0_sample.view(-1)]
-                    Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "(b h n) d -> (b h) n d",  h=horizon, n=10)
+                    Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "(b h n) d -> (b h) n d", b=n_samples, n=10)
                     Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.mean(dim=1)
                     pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
-                    pred_probs = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
+                    pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                     pred_logits = probs_to_logits(pred_probs)
                     pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
                     if t == 1:
