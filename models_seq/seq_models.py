@@ -234,17 +234,19 @@ class Restorer(nn.Module):
                 x0_pred_probs = F.softmax(x0_pred_logits, dim=-1)
 
                 # pred_probs_unorm = E_t @ x_t * \bar{E}_{t-1} @ \hat{x}_0  x_0 is logits while x_t is categorical
-                EtXt = self.Q[t, :, xt.view(-1)].T
-                Et_minus_one_bar_hat_x0 = self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1)
-                Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
-                pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
-
-                # x0_pred_probs_rearrange = rearrange(x0_pred_probs, "b h c -> (b h) c", b=n_samples)
-                # x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=1, replacement=True)
-                # x0_sample = rearrange(x0_sample, "(b h) 1 -> b h", b=n_samples)  # torch.Size([n_samples, horizon])
                 # EtXt = self.Q[t, :, xt.view(-1)].T
-                # Et_minus_one_bar_hat_x0 = self.matrices[t-1, x0_sample.view(-1)]
+                # Et_minus_one_bar_hat_x0 = self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1)
+                # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                 # pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
+
+                x0_pred_probs_rearrange = rearrange(x0_pred_probs, "b h c -> (b h) c", b=n_samples)
+                import pdb
+                pdb.set_trace()
+                x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=1, replacement=True)
+                x0_sample = rearrange(x0_sample, "(b h) 1 -> b h", b=n_samples)  # torch.Size([n_samples, horizon])
+                EtXt = self.Q[t, :, xt.view(-1)].T
+                Et_minus_one_bar_hat_x0 = self.matrices[t-1, x0_sample.view(-1)]
+                pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                 sum_probs = torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                 pred_probs = pred_probs_unorm / sum_probs
