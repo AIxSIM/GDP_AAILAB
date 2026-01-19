@@ -239,13 +239,14 @@ class Restorer(nn.Module):
                 # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                 # pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
-                x0_pred_probs_rearrange = rearrange(x0_pred_probs, "b h c -> (b h) c", b=n_samples)
-                import pdb
-                pdb.set_trace()
-                x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=1, replacement=True)
-                x0_sample = rearrange(x0_sample, "(b h) 1 -> b h", b=n_samples)  # torch.Size([n_samples, horizon])
                 EtXt = self.Q[t, :, xt.view(-1)].T
-                Et_minus_one_bar_hat_x0 = self.matrices[t-1, x0_sample.view(-1)]
+                x0_pred_probs_rearrange = rearrange(x0_pred_probs, "b h c -> (b h) c", b=n_samples)
+                x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=10, replacement=True)
+                x0_sample = rearrange(x0_sample, "(b h) n -> b h n", b=n_samples, n=10)  # torch.Size([n_samples, horizon])
+                # Et_minus_one_bar_hat_x0 = self.matrices[t-1, x0_sample.view(-1)]
+                Et_minus_one_bar_hat_x0 = self.matrices[t - 1, x0_sample.view(-1)]
+                Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "(b h n) d -> (b h) n d", b=n_samples, n=10)
+                Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.mean(dim=1)
                 pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                 sum_probs = torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
