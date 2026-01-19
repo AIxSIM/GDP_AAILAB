@@ -431,6 +431,8 @@ class Restorer(nn.Module):
                     #     self.device)
                     # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                     # pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
+                    import pdb
+                    pdb.set_trace()
                     x0_pred_probs_rearrange = rearrange(x0_pred_probs, "b h c -> (b h) c", h=horizon)
                     x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=10, replacement=True)
                     x0_sample = rearrange(x0_sample, "(b h) n -> b h n", h=horizon, n=10)  # torch.Size([n_samples, horizon])
