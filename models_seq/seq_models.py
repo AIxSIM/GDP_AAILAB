@@ -432,11 +432,6 @@ class Restorer(nn.Module):
                     # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                     # pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
-
-                    # Et_minus_one_bar_hat_x0 = self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1)
-                    # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
-                    # pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
-
                     n_samples = lengths.shape[0]
                     x0_pred_probs_rearrange = rearrange(x0_pred_probs, "b h c -> (b h) c", b=n_samples)
                     x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=10, replacement=True)
@@ -501,8 +496,8 @@ class Restorer(nn.Module):
 
                         del g, logP, logP_tilde, P_tilde_clamped, disc_logits, x_in
 
-                    # pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
-                    pred_probs = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
+                    pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                    # pred_probs = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
                     pred_logits = probs_to_logits(pred_probs)
                     pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
                     eps = 0.000001
