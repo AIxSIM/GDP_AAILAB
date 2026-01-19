@@ -500,7 +500,7 @@ class Restorer(nn.Module):
 
                             lengths_rep = lengths_rep_all[s:e]
                             ts_rep = ts_rep_all[s:e]
-                            logits_mb = disc.discriminate(x_in, lengths_rep, ts_rep // ts_rep, adj_matrix=None)  # [mb]
+                            logits_mb = disc.discriminate(x_in, lengths_rep, torch.ones_like(ts_rep), adj_matrix=None)  # [mb]
 
                             disc_logits_flat[s:e] = logits_mb
 
