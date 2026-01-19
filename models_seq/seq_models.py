@@ -232,6 +232,9 @@ class Restorer(nn.Module):
                     xt[:, 0:1] = prefix_t
                 x0_pred_logits = self.restore(xt, lengths, ts) 
                 x0_pred_probs = F.softmax(x0_pred_logits, dim=-1)
+                import pdb
+                pdb.set_trace()
+                x0_sample = torch.multinomial(x0_pred_probs, num_samples=1, replacement=True)
                 # pred_probs_unorm = E_t @ x_t * \bar{E}_{t-1} @ \hat{x}_0  x_0 is logits while x_t is categorical
                 EtXt = self.Q[t, :, xt.view(-1)].T
                 Et_minus_one_bar_hat_x0 = self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1)
