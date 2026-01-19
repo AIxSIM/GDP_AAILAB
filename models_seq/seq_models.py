@@ -385,8 +385,9 @@ class Restorer(nn.Module):
         batch_traj_num = 200
         n_batch = (total + batch_traj_num - 1) // batch_traj_num
 
-        disc.eval()
-        disc.requires_grad_(False)
+        if disc is not None:
+            disc.eval()
+            disc.requires_grad_(False)
 
         with torch.no_grad():
             for k in range(n_batch):
