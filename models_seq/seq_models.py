@@ -654,9 +654,6 @@ class Restorer(nn.Module):
                 x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=10, replacement=True)
                 x0_sample = rearrange(x0_sample, "(b h) n -> b h n", b=n_samples, n=10)  # torch.Size([n_samples, horizon])
 
-                import pdb
-                pdb.set_trace()
-
                 b, h, n = x0_sample.shape
                 V = disc.n_vertex + 2 # disc embedding vocab
                 x0_seq = x0_sample.permute(0, 2, 1).reshape(b * n, h)
