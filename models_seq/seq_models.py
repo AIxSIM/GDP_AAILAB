@@ -432,17 +432,23 @@ class Restorer(nn.Module):
                     # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
                     # pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
-                    n_samples = lengths.shape[0]
                     b, h, c = x0_pred_probs.shape
+                    n_samples = b
                     n = 200
-                    x0_pred_probs_rearrange = rearrange(x0_pred_probs, "b h c -> (b h) c", b=n_samples)
-                    x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=n, replacement=True)
-                    x0_sample = rearrange(x0_sample, "(b h) n -> b h n", b=n_samples, n=n)  # torch.Size([n_samples, horizon])
-                    x0_sample_probs = F.one_hot(x0_sample, num_classes=c).float().mean(dim=2)
+
+                    x0_pred_probs_flat = rearrange(x0_pred_probs, "b h c -> (b h) c")  # [(b*h), c]
+                    x0_sample_flat = torch.multinomial(x0_pred_probs_flat, num_samples=n, replacement=True)  # [(b*h), n]
+
+                    counts = torch.zeros((b * h, c), device=x0_sample_flat.device, dtype=torch.float32)  # [(b*h), c]
+                    ones = torch.ones_like(x0_sample_flat, dtype=torch.float32)  # [(b*h), n]
+
+                    counts.scatter_add_(dim=1, index=x0_sample_flat, src=ones)  # [(b*h), c]
+
+                    x0_sample_probs = (counts / float(n)).view(b, h, c)
 
                     Et_minus_one_bar_hat_x0 = (
-                                self.matrices[ts - 1] @ x0_sample_probs.transpose(2, 1).to(self.des_device)).to(
-                        self.device)
+                                    self.matrices[ts - 1] @ x0_sample_probs.transpose(2, 1).to(self.des_device)).to(
+                            self.device)
                     Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
 
                     # Et_minus_one_bar_hat_x0 = self.matrices[t - 1, x0_sample.view(-1)]
