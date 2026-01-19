@@ -434,16 +434,13 @@ class Restorer(nn.Module):
 
                     b, h, c = x0_pred_probs.shape
                     n_samples = b
-                    n = 200
+                    n = 2000
 
                     x0_pred_probs_flat = rearrange(x0_pred_probs, "b h c -> (b h) c")  # [(b*h), c]
                     x0_sample_flat = torch.multinomial(x0_pred_probs_flat, num_samples=n, replacement=True)  # [(b*h), n]
-
                     counts = torch.zeros((b * h, c), device=x0_sample_flat.device, dtype=torch.float32)  # [(b*h), c]
                     ones = torch.ones_like(x0_sample_flat, dtype=torch.float32)  # [(b*h), n]
-
                     counts.scatter_add_(dim=1, index=x0_sample_flat, src=ones)  # [(b*h), c]
-
                     x0_sample_probs = (counts / float(n)).view(b, h, c)
 
                     Et_minus_one_bar_hat_x0 = (
