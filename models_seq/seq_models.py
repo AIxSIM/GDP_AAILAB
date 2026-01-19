@@ -434,7 +434,7 @@ class Restorer(nn.Module):
 
                     b, h, c = x0_pred_probs.shape
                     n_samples = b
-                    n = 2000
+                    n = 100
 
                     x0_pred_probs_flat = rearrange(x0_pred_probs, "b h c -> (b h) c")  # [(b*h), c]
                     x0_sample_flat = torch.multinomial(x0_pred_probs_flat, num_samples=n, replacement=True)  # [(b*h), n]
@@ -481,7 +481,7 @@ class Restorer(nn.Module):
                         bn = b * n
 
                         disc_logits_flat = torch.empty((bn,), device=x0_sample.device, dtype=torch.float32)
-                        micro_b = 16
+                        micro_b = 32
 
                         x0_seq_all = x0_sample.permute(0, 2, 1).reshape(bn, h)  # [b*n, h]
                         lengths_rep_all = lengths.repeat_interleave(n)  # [b*n]
@@ -506,8 +506,7 @@ class Restorer(nn.Module):
 
                         disc_logits = disc_logits_flat.view(b, n)  # [b, n]
                         Et_minus_one_bar_hat_x0 = self.matrices[t - 1, x0_sample.reshape(-1)]  # [(b*h*n), d]
-                        Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.view(b, h, n, -1).permute(0, 2, 1,
-                                                                                                    3)  # [b, n, h, d]
+                        Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.view(b, h, n, -1).permute(0, 2, 1, 3)  # [b, n, h, d]
 
                         weights = torch.softmax(disc_logits, dim=1).to(Et_minus_one_bar_hat_x0.dtype)  # [b, n]
 
