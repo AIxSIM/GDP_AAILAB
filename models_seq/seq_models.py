@@ -658,7 +658,7 @@ class Restorer(nn.Module):
                 pdb.set_trace()
 
                 b, h, n = x0_sample.shape
-                V = disc.n_vertex # + 2 # disc embedding vocab
+                V = disc.n_vertex + 2 # disc embedding vocab
                 x0_seq = x0_sample.permute(0, 2, 1).reshape(b * n, h)
                 x_in = F.one_hot(x0_seq, num_classes=V).float()  # [b*n, h, V]
                 lengths_rep = lengths.repeat_interleave(n)
