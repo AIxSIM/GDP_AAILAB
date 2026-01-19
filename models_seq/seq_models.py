@@ -642,10 +642,38 @@ class Restorer(nn.Module):
                     xt[:, 0:1] = prefix_t
                 x0_pred_logits = self.restore(xt, lengths, ts)
                 x0_pred_probs = F.softmax(x0_pred_logits, dim=-1)
+
                 # pred_probs_unorm = E_t @ x_t * \bar{E}_{t-1} @ \hat{x}_0  x_0 is logits while x_t is categorical
+                # EtXt = self.Q[t, :, xt.view(-1)].T
+                # Et_minus_one_bar_hat_x0 = self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1)
+                # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
+                # pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
+
                 EtXt = self.Q[t, :, xt.view(-1)].T
-                Et_minus_one_bar_hat_x0 = self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1)
-                Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
+                x0_pred_probs_rearrange = rearrange(x0_pred_probs, "b h c -> (b h) c", b=n_samples)
+                x0_sample = torch.multinomial(x0_pred_probs_rearrange, num_samples=10, replacement=True)
+                x0_sample = rearrange(x0_sample, "(b h) n -> b h n", b=n_samples, n=10)  # torch.Size([n_samples, horizon])
+
+                import pdb
+                pdb.set_trace()
+
+                b, h, n = x0_sample.shape
+                V = disc.n_vertex # + 2 # disc embedding vocab
+                x0_seq = x0_sample.permute(0, 2, 1).reshape(b * n, h)
+                x_in = F.one_hot(x0_seq, num_classes=V).float()  # [b*n, h, V]
+                lengths_rep = lengths.repeat_interleave(n)
+                ts_rep = ts.repeat_interleave(n) if ts.ndim == 1 else ts
+                disc_logits = disc.discriminate(x_in, lengths_rep, ts_rep, adj_matrix=None)
+                disc_logits = disc_logits.view(b, n)  # [b, n]
+
+                Et_minus_one_bar_hat_x0 = self.matrices[t - 1, x0_sample.view(-1)]
+                Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "(b h n) d -> (b h) n d", b=n_samples, n=10)
+                #Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.mean(dim=1)
+                w = torch.exp(disc_logits)  # [(b*h), n]
+                w_sum = w.sum(dim=1, keepdim=True).clamp_min(1e-12)  # [(b*h), 1]
+                weights = w / w_sum
+                Et_minus_one_bar_hat_x0 = (Et_minus_one_bar_hat_x0 * weights.unsqueeze(-1)).sum(dim=1)  # [(b*h), d]
+
                 pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                 ####### Guidance ########
