@@ -434,7 +434,7 @@ class Restorer(nn.Module):
 
                     b, h, c = x0_pred_probs.shape
                     n_samples = b
-                    n = 100
+                    n = 1000
 
                     x0_pred_probs_flat = rearrange(x0_pred_probs, "b h c -> (b h) c")  # [(b*h), c]
                     x0_sample_flat = torch.multinomial(x0_pred_probs_flat, num_samples=n, replacement=True)  # [(b*h), n]
@@ -584,7 +584,7 @@ class Restorer(nn.Module):
                 print((kl - kl_before).mean())
                 kl_all += kl.detach().to("cpu").tolist()
                 kl_before_all += kl_before.detach().to("cpu").tolist()
-
+                torch.cuda.empty_cache()
         print(np.array(kl_before_all).mean())
 
         return np.array(kl_all)
