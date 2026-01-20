@@ -434,7 +434,7 @@ class Restorer(nn.Module):
 
                     b, h, c = x0_pred_probs.shape
                     n_samples = b
-                    n = 1000
+                    n = 100
 
                     x0_pred_probs_flat = rearrange(x0_pred_probs, "b h c -> (b h) c")  # [(b*h), c]
                     x0_sample_flat = torch.multinomial(x0_pred_probs_flat, num_samples=n, replacement=True)  # [(b*h), n]
