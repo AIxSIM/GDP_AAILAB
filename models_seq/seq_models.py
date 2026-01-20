@@ -473,8 +473,6 @@ class Restorer(nn.Module):
 
                     ####### Guidance ########
                     if disc is not None:
-                        b = lengths.shape[0]
-                        h = x0_pred_probs.shape[1]
                         x0_sample = x0_sample_flat.view(b, h, n)  # [b, h, n]
 
                         V = disc.n_vertex + 2  # disc embedding vocab
@@ -494,6 +492,9 @@ class Restorer(nn.Module):
                         # microbatch loop
                         for s in range(0, bn, micro_b):
                             e = min(s + micro_b, bn)
+
+                            import pdb
+                            pdb.set_trace()
 
                             x0_seq = x0_seq_all[s:e]  # [mb, h]
                             x_in = F.one_hot(x0_seq, num_classes=V).to(torch.float32)  # [mb, h, V]
