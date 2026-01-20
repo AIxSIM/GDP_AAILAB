@@ -1102,6 +1102,8 @@ class Discriminator_module(nn.Module):
     def discriminate(self, xt_padded, lengths=None, ts=None, adj_matrix=None):
         # xt_padded: b, h value is vertex number
         # ts: b value is time for each
+        import pdb
+        pdb.set_trace()
         batch_size = xt_padded.shape[0]
         if ts is None:
             ts = torch.Tensor([self.max_T]).repeat(batch_size).to(self.device)
