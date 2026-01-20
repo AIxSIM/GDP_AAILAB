@@ -507,10 +507,17 @@ class Restorer(nn.Module):
                             disc_logits_flat[s:e] = logits_mb
 
                         disc_logits = disc_logits_flat.view(b, n)  # [b, n]
+                        weights = torch.softmax(disc_logits, dim=1)
+
+                        x2 = x0_sample.long().view(b * h, n)
+                        counts = torch.stack([torch.bincount(row, minlength=V) for row in x2], dim=0)
+                        counts = counts.view(b, h, V).float()
+                        x0_probs = counts / counts.sum(dim=-1, keepdim=True).clamp_min(1.0)
+
+
                         Et_minus_one_bar_hat_x0 = self.matrices[t - 1, x0_sample.reshape(-1)]  # [(b*h*n), d]
                         Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.view(b, h, n, -1).permute(0, 2, 1, 3)  # [b, n, h, d]
 
-                        weights = torch.softmax(disc_logits, dim=1).to(Et_minus_one_bar_hat_x0.dtype)  # [b, n]
 
                         Et_minus_one_bar_hat_x0 = (Et_minus_one_bar_hat_x0 * weights[:, :, None, None]).sum(dim=1)  # [b, h, d]
                         Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.reshape(b * h, -1)  # [b*h, d]
@@ -1102,8 +1109,6 @@ class Discriminator_module(nn.Module):
     def discriminate(self, xt_padded, lengths=None, ts=None, adj_matrix=None):
         # xt_padded: b, h value is vertex number
         # ts: b value is time for each
-        import pdb
-        pdb.set_trace()
         batch_size = xt_padded.shape[0]
         if ts is None:
             ts = torch.Tensor([self.max_T]).repeat(batch_size).to(self.device)
