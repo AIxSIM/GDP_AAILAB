@@ -493,14 +493,16 @@ class Restorer(nn.Module):
                         for s in range(0, bn, micro_b):
                             e = min(s + micro_b, bn)
 
-                            import pdb
-                            pdb.set_trace()
-
                             x0_seq = x0_seq_all[s:e]  # [mb, h]
-                            x_in = F.one_hot(x0_seq, num_classes=V).to(torch.float32)  # [mb, h, V]
-
                             lengths_rep = lengths_rep_all[s:e]
                             ts_rep = ts_rep_all[s:e]
+
+                            pos = torch.arange(h, device=x0_seq.device).unsqueeze(0)
+                            mask = pos >= lengths_rep.unsqueeze(1)
+                            x0_seq = x0_seq.masked_fill(mask, 0)
+
+                            x_in = F.one_hot(x0_seq, num_classes=V).to(torch.float32)  # [mb, h, V]
+
                             logits_mb = disc.discriminate(x_in, lengths_rep, torch.ones_like(ts_rep), adj_matrix=None)  # [mb]
 
                             disc_logits_flat[s:e] = logits_mb
