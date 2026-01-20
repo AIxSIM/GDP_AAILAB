@@ -473,8 +473,6 @@ class Restorer(nn.Module):
 
                     ####### Guidance ########
                     if disc is not None:
-                        import pdb
-                        pdb.set_trace()
                         b = lengths.shape[0]
                         h = x0_pred_probs.shape[1]
                         x0_sample = x0_sample_flat.view(b, h, n)  # [b, h, n]
@@ -508,19 +506,21 @@ class Restorer(nn.Module):
 
                         disc_logits = disc_logits_flat.view(b, n)  # [b, n]
                         weights = torch.softmax(disc_logits, dim=1)
+                        weights_flat = weights.unsqueeze(1).expand(b, h, n).reshape(b * h, n)  # (b*h, n)
 
-                        x2 = x0_sample.long().view(b * h, n)
-                        counts = torch.stack([torch.bincount(row, minlength=V) for row in x2], dim=0)
-                        counts = counts.view(b, h, V).float()
-                        x0_probs = counts / counts.sum(dim=-1, keepdim=True).clamp_min(1.0)
+                        weighted_counts = torch.zeros((b * h, c), device=x0_sample_flat.device, dtype=torch.float32)
 
+                        weighted_counts.scatter_add_(
+                            dim=1,
+                            index=x0_sample_flat,  # (b*h, n)
+                            src=weights_flat  # (b*h, n)
+                        )
+                        x0_sample_probs_weighted = weighted_counts.view(b, h, c)
 
-                        Et_minus_one_bar_hat_x0 = self.matrices[t - 1, x0_sample.reshape(-1)]  # [(b*h*n), d]
-                        Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.view(b, h, n, -1).permute(0, 2, 1, 3)  # [b, n, h, d]
-
-
-                        Et_minus_one_bar_hat_x0 = (Et_minus_one_bar_hat_x0 * weights[:, :, None, None]).sum(dim=1)  # [b, h, d]
-                        Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.reshape(b * h, -1)  # [b*h, d]
+                        Et_minus_one_bar_hat_x0 = (
+                                self.matrices[ts - 1] @ x0_sample_probs_weighted.transpose(2, 1).to(self.des_device)).to(
+                            self.device)
+                        Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
 
                         pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
