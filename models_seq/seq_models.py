@@ -473,6 +473,8 @@ class Restorer(nn.Module):
 
                     ####### Guidance ########
                     if disc is not None:
+                        import pdb
+                        pdb.set_trace()
                         b = lengths.shape[0]
                         h = x0_pred_probs.shape[1]
                         x0_sample = x0_sample_flat.view(b, h, n)  # [b, h, n]
