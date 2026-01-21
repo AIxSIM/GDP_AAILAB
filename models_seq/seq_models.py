@@ -508,7 +508,8 @@ class Restorer(nn.Module):
                             disc_logits_flat[s:e] = logits_mb
 
                         disc_logits = disc_logits_flat.view(b, n)  # [b, n]
-                        weights = torch.softmax(disc_logits, dim=1)
+                        # weights = torch.softmax(disc_logits, dim=1)
+                        weights = torch.exp(disc_logits)
                         weights_flat = weights.unsqueeze(1).expand(b, h, n).reshape(b * h, n)  # (b*h, n)
 
                         weighted_counts = torch.zeros((b * h, c), device=x0_sample_flat.device, dtype=torch.float32)
@@ -518,7 +519,7 @@ class Restorer(nn.Module):
                             index=x0_sample_flat,  # (b*h, n)
                             src=weights_flat  # (b*h, n)
                         )
-                        x0_sample_probs_weighted = weighted_counts.view(b, h, c)
+                        x0_sample_probs_weighted = (weighted_counts / float(n)).view(b, h, c)
 
                         Et_minus_one_bar_hat_x0 = (
                                 self.matrices[ts - 1] @ x0_sample_probs_weighted.transpose(2, 1).to(self.des_device)).to(
