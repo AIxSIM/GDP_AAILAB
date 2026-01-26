@@ -542,8 +542,31 @@ class Restorer(nn.Module):
                         logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
                         P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
 
-                        import pdb
-                        pdb.set_trace()
+                        def sweep_one_position(x_in_b, P_tilde_clamped_b_t, b_idx, t_idx, vocab_size=1439, chunk=128):
+                            device = x_in_b.device
+                            T, V = x_in_b.shape
+                            assert V == vocab_size
+                            base = x_in_b.unsqueeze(0)
+                            mae = 0
+                            for s in range(0, vocab_size, chunk):
+                                e = min(s + chunk, vocab_size)
+                                n = e - s
+                                x = base.expand(n, T, V).clone()
+                                x[:, t_idx, :] = 0.0
+                                x[torch.arange(n, device=device), t_idx, torch.arange(s, e, device=device)] = 1.0
+                                out = disc.discriminate(x, lengths[b_idx].repeat(n), ts[b_idx].repeat(n), adj_matrix=None)
+                                mae += torch.abs(out - P_tilde_clamped_b_t[s:e]).sum()
+                            return mae / vocab_size
+
+                        mae_b = 0
+                        for b_idx in range(b):
+                            mae_t = 0
+                            for t_idx in range(lengths[b_idx]):
+                                mae_t += sweep_one_position(x_onehot[b], P_tilde_clamped[b][t], b, t, vocab_size=1439, chunk=256)
+                            mae_t = mae_t / lengths[b_idx]
+                            mae_b += mae_t
+                        mae_b = mae_b / b
+                        print(t, mae_b)
 
                         log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
                         weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
