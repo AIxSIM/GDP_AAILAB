@@ -562,7 +562,7 @@ class Restorer(nn.Module):
                         for b_idx in range(b):
                             mae_t = 0
                             for t_idx in range(lengths[b_idx]):
-                                mae_t += sweep_one_position(x_onehot[b], P_tilde_clamped[b][t], b, t, vocab_size=1439, chunk=256)
+                                mae_t += sweep_one_position(x_onehot[b_idx], P_tilde_clamped[b_idx][t_idx], b_idx, t_idx, vocab_size=1439, chunk=256)
                             mae_t = mae_t / lengths[b_idx]
                             mae_b += mae_t
                         mae_b = mae_b / b
