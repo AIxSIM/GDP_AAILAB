@@ -473,94 +473,99 @@ class Restorer(nn.Module):
 
                     ####### Guidance ########
                     if disc is not None:
-                        x0_sample = x0_sample_flat.view(b, h, n)  # [b, h, n]
+                        # x0_sample = x0_sample_flat.view(b, h, n)  # [b, h, n]
+                        #
+                        # V = disc.n_vertex + 2  # disc embedding vocab
+                        # bn = b * n
+                        #
+                        # disc_logits_flat = torch.empty((bn,), device=x0_sample.device, dtype=torch.float32)
+                        # micro_b = b * 10
+                        #
+                        # x0_seq_all = x0_sample.permute(0, 2, 1).reshape(bn, h)  # [b*n, h]
+                        # lengths_rep_all = lengths.repeat_interleave(n)  # [b*n]
+                        #
+                        # if ts.ndim == 1:
+                        #     ts_rep_all = ts.repeat_interleave(n)  # [b*n]
+                        # else:
+                        #     ts_rep_all = ts.repeat_interleave(n, dim=0)  # [b*n, ...]
+                        #
+                        # # microbatch loop
+                        # for s in range(0, bn, micro_b):
+                        #     e = min(s + micro_b, bn)
+                        #
+                        #     x0_seq = x0_seq_all[s:e]  # [mb, h]
+                        #     lengths_rep = lengths_rep_all[s:e]
+                        #     ts_rep = ts_rep_all[s:e]
+                        #
+                        #     pos = torch.arange(h, device=x0_seq.device).unsqueeze(0)
+                        #     mask = pos >= lengths_rep.unsqueeze(1)
+                        #     x0_seq = x0_seq.masked_fill(mask, 0)
+                        #
+                        #     x_in = F.one_hot(x0_seq, num_classes=V).to(torch.float32)  # [mb, h, V]
+                        #
+                        #     logits_mb = disc.discriminate(x_in, lengths_rep, torch.ones_like(ts_rep), adj_matrix=None)  # [mb]
+                        #
+                        #     disc_logits_flat[s:e] = logits_mb
+                        #
+                        # disc_logits = disc_logits_flat.view(b, n)  # [b, n]
+                        # # weights = torch.softmax(disc_logits, dim=1)
+                        # weights = torch.exp(disc_logits)
+                        # weights_flat = weights.unsqueeze(1).expand(b, h, n).reshape(b * h, n)  # (b*h, n)
+                        #
+                        # weighted_counts = torch.zeros((b * h, c), device=x0_sample_flat.device, dtype=torch.float32)
+                        #
+                        # weighted_counts.scatter_add_(
+                        #     dim=1,
+                        #     index=x0_sample_flat,  # (b*h, n)
+                        #     src=weights_flat  # (b*h, n)
+                        # )
+                        # # x0_sample_probs_weighted = (weighted_counts / float(n)).view(b, h, c)
+                        # x0_sample_probs_weighted = weighted_counts.view(b, h, c)
+                        #
+                        # Et_minus_one_bar_hat_x0 = (
+                        #         self.matrices[ts - 1] @ x0_sample_probs_weighted.transpose(2, 1).to(self.des_device)).to(
+                        #     self.device)
+                        # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
+                        #
+                        # pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                         V = disc.n_vertex + 2  # disc embedding vocab
-                        bn = b * n
+                        x_onehot = F.one_hot(xt_padded, num_classes=V).float()
+                        x_in = x_onehot.clone().requires_grad_(True)
 
-                        disc_logits_flat = torch.empty((bn,), device=x0_sample.device, dtype=torch.float32)
-                        micro_b = b * 10
+                        with torch.enable_grad():
+                            disc_logits = disc.discriminate(x_in, lengths, ts, adj_matrix=None)  # [B]
+                            logP = torch.log(torch.sigmoid(disc_logits) + 1e-12)  # [B]
+                            g = torch.autograd.grad(logP.sum(), x_in, create_graph=False)[0]  # [B,H,V]
+                        v_cur = xt_padded.unsqueeze(-1)  # [B,H,1]
+                        g_cur = torch.gather(g, dim=-1, index=v_cur)  # [B,H,1]
+                        logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
+                        P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
 
-                        x0_seq_all = x0_sample.permute(0, 2, 1).reshape(bn, h)  # [b*n, h]
-                        lengths_rep_all = lengths.repeat_interleave(n)  # [b*n]
+                        import pdb
+                        pdb.set_trace()
 
-                        if ts.ndim == 1:
-                            ts_rep_all = ts.repeat_interleave(n)  # [b*n]
+                        log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
+                        weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
+                        if t == 1:
+                            guidance = torch.exp(log_odds)
                         else:
-                            ts_rep_all = ts.repeat_interleave(n, dim=0)  # [b*n, ...]
+                            guidance = torch.exp(weight[ts-1][:, None, None] ** 2 * log_odds)
+                        # guidance = torch.exp(log_odds)
+                        disc.zero_grad()
 
-                        # microbatch loop
-                        for s in range(0, bn, micro_b):
-                            e = min(s + micro_b, bn)
+                        # pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                        pred_probs_unorm = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
+                        # pred_logits_before = probs_to_logits(pred_probs_unorm)
+                        # pred_logits_before = rearrange(pred_logits_before, "(b h) c -> b h c", h=horizon)
 
-                            x0_seq = x0_seq_all[s:e]  # [mb, h]
-                            lengths_rep = lengths_rep_all[s:e]
-                            ts_rep = ts_rep_all[s:e]
+                        B, H = xt_padded.shape
+                        V_pred = pred_probs_unorm.shape[-1]
+                        pred_probs_unorm = pred_probs_unorm.view(B, H, V_pred)
+                        pred_probs_unorm = pred_probs_unorm * guidance[..., :V_pred]
+                        pred_probs_unorm = pred_probs_unorm.view(B * H, V_pred)
 
-                            pos = torch.arange(h, device=x0_seq.device).unsqueeze(0)
-                            mask = pos >= lengths_rep.unsqueeze(1)
-                            x0_seq = x0_seq.masked_fill(mask, 0)
-
-                            x_in = F.one_hot(x0_seq, num_classes=V).to(torch.float32)  # [mb, h, V]
-
-                            logits_mb = disc.discriminate(x_in, lengths_rep, torch.ones_like(ts_rep), adj_matrix=None)  # [mb]
-
-                            disc_logits_flat[s:e] = logits_mb
-
-                        disc_logits = disc_logits_flat.view(b, n)  # [b, n]
-                        # weights = torch.softmax(disc_logits, dim=1)
-                        weights = torch.exp(disc_logits)
-                        weights_flat = weights.unsqueeze(1).expand(b, h, n).reshape(b * h, n)  # (b*h, n)
-
-                        weighted_counts = torch.zeros((b * h, c), device=x0_sample_flat.device, dtype=torch.float32)
-
-                        weighted_counts.scatter_add_(
-                            dim=1,
-                            index=x0_sample_flat,  # (b*h, n)
-                            src=weights_flat  # (b*h, n)
-                        )
-                        x0_sample_probs_weighted = (weighted_counts / float(n)).view(b, h, c)
-
-                        Et_minus_one_bar_hat_x0 = (
-                                self.matrices[ts - 1] @ x0_sample_probs_weighted.transpose(2, 1).to(self.des_device)).to(
-                            self.device)
-                        Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
-
-                        pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
-
-                    #     V = disc.n_vertex + 2  # disc embedding vocab
-                    #     x_onehot = F.one_hot(xt_padded, num_classes=V).float()
-                    #     x_in = x_onehot.clone().requires_grad_(True)
-                    #
-                    #     with torch.enable_grad():
-                    #         disc_logits = disc.discriminate(x_in, lengths, ts, adj_matrix=None)  # [B]
-                    #         logP = torch.log(torch.sigmoid(disc_logits) + 1e-12)  # [B]
-                    #         g = torch.autograd.grad(logP.sum(), x_in, create_graph=False)[0]  # [B,H,V]
-                    #     v_cur = xt_padded.unsqueeze(-1)  # [B,H,1]
-                    #     g_cur = torch.gather(g, dim=-1, index=v_cur)  # [B,H,1]
-                    #     logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
-                    #     P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
-                    #     log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
-                    #     weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
-                    #     if t == 1:
-                    #         guidance = torch.exp(log_odds)
-                    #     else:
-                    #         guidance = torch.exp(weight[ts-1][:, None, None] ** 2 * log_odds)
-                    #     # guidance = torch.exp(log_odds)
-                    #     disc.zero_grad()
-                    #
-                    #     # pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
-                    #     pred_probs_unorm = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
-                    #     # pred_logits_before = probs_to_logits(pred_probs_unorm)
-                    #     # pred_logits_before = rearrange(pred_logits_before, "(b h) c -> b h c", h=horizon)
-                    #
-                    #     B, H = xt_padded.shape
-                    #     V_pred = pred_probs_unorm.shape[-1]
-                    #     pred_probs_unorm = pred_probs_unorm.view(B, H, V_pred)
-                    #     pred_probs_unorm = pred_probs_unorm * guidance[..., :V_pred]
-                    #     pred_probs_unorm = pred_probs_unorm.view(B * H, V_pred)
-                    #
-                    #     del g, logP, logP_tilde, P_tilde_clamped, disc_logits, x_in
+                        del g, logP, logP_tilde, P_tilde_clamped, disc_logits, x_in
 
                     pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                     # pred_probs = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
