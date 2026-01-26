@@ -559,15 +559,15 @@ class Restorer(nn.Module):
                                 mae += torch.abs(out_P - P_tilde_clamped_b_t[s:e]).sum()
                             return mae / vocab_size
 
-                        mae_b = 0
+                        mae_b = []
                         for b_idx in range(b):
                             mae_t = 0
                             for t_idx in range(lengths[b_idx]):
                                 mae_t += sweep_one_position(x_onehot[b_idx], P_tilde_clamped[b_idx][t_idx], b_idx, t_idx, vocab_size=1439, chunk=256)
                             mae_t = mae_t / lengths[b_idx]
-                            mae_b += mae_t
-                        mae_b = mae_b / b
-                        print(t, mae_b)
+                            mae_b.append(mae_t)
+                        mae_b = torch.stack(mae_b)
+                        print(t, mae_b.mean(), mae_b.std())
 
                         log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
                         weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
