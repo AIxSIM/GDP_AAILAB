@@ -560,7 +560,7 @@ class Restorer(nn.Module):
                             return mae / vocab_size
 
                         mae_b = []
-                        for b_idx in range(10):
+                        for b_idx in range(100):
                             mae_t = 0
                             for t_idx in range(lengths[b_idx]):
                                 mae_t += sweep_one_position(x_onehot[b_idx], P_tilde_clamped[b_idx][t_idx], b_idx, t_idx, vocab_size=1439, chunk=256)
