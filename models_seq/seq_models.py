@@ -541,8 +541,10 @@ class Restorer(nn.Module):
                         g_cur = torch.gather(g, dim=-1, index=v_cur)  # [B,H,1]
                         logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
                         P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
+                        log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
+                        guidance = torch.exp(log_odds)
 
-                        def sweep_one_position(x_in_b, P_tilde_clamped_b_t, b_idx, t_idx, vocab_size=1439, chunk=128):
+                        def sweep_one_position(x_in_b, guidance_b_t, b_idx, t_idx, vocab_size=1439, chunk=128):
                             device = x_in_b.device
                             T, V = x_in_b.shape
                             assert V == vocab_size
@@ -556,20 +558,21 @@ class Restorer(nn.Module):
                                 x[torch.arange(n, device=device), t_idx, torch.arange(s, e, device=device)] = 1.0
                                 out = disc.discriminate(x, lengths[b_idx].repeat(n), ts[b_idx].repeat(n), adj_matrix=None)
                                 out_P = torch.sigmoid(out)
-                                mae += torch.abs(out_P - P_tilde_clamped_b_t[s:e]).sum()
+                                log_out_odds = torch.log(out_P) - torch.log1p(-out_P)
+                                guidance_out = torch.exp(log_out_odds)
+                                mae += torch.abs(guidance_out - guidance_b_t[s:e]).sum()
                             return mae / vocab_size
 
                         mae_b = []
                         for b_idx in range(100):
                             mae_t = 0
                             for t_idx in range(lengths[b_idx]):
-                                mae_t += sweep_one_position(x_onehot[b_idx], P_tilde_clamped[b_idx][t_idx], b_idx, t_idx, vocab_size=1439, chunk=256)
+                                mae_t += sweep_one_position(x_onehot[b_idx], guidance[b_idx][t_idx], b_idx, t_idx, vocab_size=1439, chunk=256)
                             mae_t = mae_t / lengths[b_idx]
                             mae_b.append(mae_t)
                         mae_b = torch.stack(mae_b)
                         print(t, mae_b.mean(), mae_b.std())
 
-                        log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
                         weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
                         if t == 1:
                             guidance = torch.exp(log_odds)
