@@ -555,7 +555,8 @@ class Restorer(nn.Module):
                                 x[:, t_idx, :] = 0.0
                                 x[torch.arange(n, device=device), t_idx, torch.arange(s, e, device=device)] = 1.0
                                 out = disc.discriminate(x, lengths[b_idx].repeat(n), ts[b_idx].repeat(n), adj_matrix=None)
-                                mae += torch.abs(out - P_tilde_clamped_b_t[s:e]).sum()
+                                out_P = torch.sigmoid(out)
+                                mae += torch.abs(out_P - P_tilde_clamped_b_t[s:e]).sum()
                             return mae / vocab_size
 
                         mae_b = 0
