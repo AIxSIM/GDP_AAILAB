@@ -404,6 +404,8 @@ class Restorer(nn.Module):
 
                 for t in range(1, self.max_T + 1):
                 # for t in range(self.max_T, 0, -1):
+                    import pdb
+                    pdb.set_trace()
                     ts = torch.full((batch_size,), t, device=self.device, dtype=torch.long)
                     lengths = torch.Tensor([x.shape[0] for x in xs]).long().to(self.device)
 
