@@ -63,95 +63,96 @@ class UnetBlock(nn.Module):
 
 
 class Discriminator(nn.Module):
-    
-    def __init__(self, n_vertex, x_emb_dim, dims, hidden_dim, device, pretrain_path=None):
+    def __init__(
+        self,
+        n_vertex,
+        x_emb_dim,
+        dims,
+        hidden_dim,
+        device,
+        pretrain_path=None,
+        use_mid_attn=False,     # 필요하면 True
+        cls_hidden=None,        # None이면 mid_dim 그대로, 값 주면 더 작게
+    ):
         super().__init__()
-        time_dim = hidden_dim
         self.device = device
-        # temporal embedding
-        self.time_mlp = nn.Sequential(
-            SinusoidalPosEmb(time_dim, device), 
-            nn.Linear(time_dim, 4 * time_dim, device=device), 
-            nn.Mish(), 
-            nn.Linear(4 * time_dim, time_dim, device=device)
-        )
-        # self.adj_conv = nn.Sequential(
-        #     nn.Conv2d(1, 32, kernel_size=5, stride=2, device=device),
-        #     nn.ReLU(),
-        #     nn.Conv2d(32, 64, kernel_size=5, stride=2, device=device),
-        #     nn.ReLU(),
-        #     nn.AdaptiveAvgPool2d((1, 1))
-        # )
-        # self.adj_mlp = nn.Linear(64, time_dim, device=device)
+        time_dim = hidden_dim
 
-        # n_vertex denotes <end>,  n_vertex + 1 denotes <padding>
+        # temporal embedding (그대로 두되 Mish -> SiLU로 조금 더 가볍게)
+        self.time_mlp = nn.Sequential(
+            SinusoidalPosEmb(time_dim, device),
+            nn.Linear(time_dim, 4 * time_dim, device=device),
+            nn.SiLU(),
+            nn.Linear(4 * time_dim, time_dim, device=device),
+        )
+
+        # embedding
         if pretrain_path is not None:
+            import pickle
             node2vec = pickle.load(open(pretrain_path, "rb"))
             assert n_vertex == len(node2vec)
-            if x_emb_dim != node2vec[0].shape[0]:
-                print("Use pretrained embed dims")
             x_emb_dim = node2vec[0].shape[0]
+
             nodeemb = torch.zeros(n_vertex + 2, x_emb_dim)
-            # nodeemb = torch.zeros(n_vertex, x_emb_dim)
             for k in node2vec:
                 nodeemb[k] = torch.from_numpy(node2vec[k])
             self.x_embedding = nn.Embedding.from_pretrained(nodeemb, freeze=False).to(device)
         else:
-            self.x_embedding = nn.Embedding(n_vertex + 2, x_emb_dim, padding_idx=n_vertex, device=device)
-        
-        in_out_dim = [(a, b) for a, b in zip(dims, dims[1:])]
-        print(in_out_dim)
-        # down blocks
-        self.down_blocks = []
-        n_reso = len(in_out_dim)
-        for k, (in_dim, out_dim) in enumerate(in_out_dim):
-            self.down_blocks.append(UnetBlock(
-                in_dim, time_dim, out_dim, device, 
-                down_up="down", last=(k == n_reso - 1)))
-        
-        # middle parts
+            self.x_embedding = nn.Embedding(
+                n_vertex + 2, x_emb_dim, padding_idx=n_vertex, device=device
+            )
+
+        # down blocks (✅ ModuleList로 등록)
+        in_out = list(zip(dims, dims[1:]))
+        self.down_blocks = nn.ModuleList([
+            UnetBlock(in_dim, time_dim, out_dim, device, down_up="down", last=(i == len(in_out) - 1))
+            for i, (in_dim, out_dim) in enumerate(in_out)
+        ])
+
         mid_dim = dims[-1]
-        self.mid_block1 = XTResBlock(mid_dim, time_dim, mid_dim, device)
-        self.mid_attn = Residual(LinearAttention(mid_dim, device))
-        self.mid_block2 = XTResBlock(mid_dim, time_dim, mid_dim, device)
 
-        # disc parts
+        # middle: 더 가볍게 (ResBlock 1개 + optional attn)
+        self.mid_block = XTResBlock(mid_dim, time_dim, mid_dim, device)
+        self.mid_attn = Residual(LinearAttention(mid_dim, device)) if use_mid_attn else None
+
+        # pooling + classifier: 작게
         self.pool = nn.AdaptiveAvgPool1d(1)
-        self.classifier = nn.Sequential(
-            nn.Linear(mid_dim, mid_dim, device=device),
-            nn.ReLU(),
-            nn.Linear(mid_dim, 1, device=device)
-        )
+        cls_hidden = mid_dim if cls_hidden is None else cls_hidden
+        if cls_hidden == mid_dim:
+            # 가장 가벼운 버전: 1-layer
+            self.classifier = nn.Linear(mid_dim, 1, device=device)
+        else:
+            self.classifier = nn.Sequential(
+                nn.Linear(mid_dim, cls_hidden, device=device),
+                nn.SiLU(),
+                nn.Linear(cls_hidden, 1, device=device),
+            )
 
-    def forward(self, xt_padded, lengths, t, adj_matrix):
-        # xt_padded: shape b, h, each is a xt label
-        # t: shape b
+    def forward(self, xt_padded, lengths, t, adj_matrix=None):
+        # t embedding
         t = self.time_mlp(t)
-        # adj_feature = self.adj_conv(adj_matrix.unsqueeze(1))
-        # adj_feature = self.adj_mlp(adj_feature.view(adj_feature.size(0), -1))
-        # t = t + adj_feature
 
-        # x = self.x_embedding(xt_padded)
+        # xt -> token emb
         if xt_padded.dtype in (torch.float16, torch.float32, torch.float64):
-            # xt_padded: [B,H,V]
-            # embedding.weight: [V+2, D]
-            E = self.x_embedding.weight                      # [Vocab, D]
-            x = xt_padded @ E                                # [B,H,D]
+            # xt_padded: [B,H,V] (soft one-hot/prob)
+            # E: [Vocab, D]
+            E = self.x_embedding.weight
+            x = torch.einsum("bhv,vd->bhd", xt_padded, E)
         else:
             # xt_padded: [B,H]
-            x = self.x_embedding(xt_padded)                  # [B,H,D]
+            x = self.x_embedding(xt_padded)
 
-        hiddens = []
-        for k, down_block in enumerate(self.down_blocks):
-            x, h = down_block(x, lengths if k == 0 else None, t)
-            hiddens.append(h)
-        
-        x = self.mid_block1(x, t)
-        x = self.mid_attn(x, None)
-        x = self.mid_block2(x, t)
+        # down path
+        for i, down_block in enumerate(self.down_blocks):
+            x, _ = down_block(x, lengths if i == 0 else None, t)
 
-        x = x.transpose(1, 2)
-        x = self.pool(x)
-        x = self.classifier(x.squeeze(-1)).squeeze(-1)
+        # mid
+        x = self.mid_block(x, t)
+        if self.mid_attn is not None:
+            x = self.mid_attn(x, None)
 
+        # global pooling + cls
+        x = x.transpose(1, 2)          # [B, D, H]
+        x = self.pool(x).squeeze(-1)   # [B, D]
+        x = self.classifier(x).squeeze(-1)  # [B]
         return x
