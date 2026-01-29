@@ -403,9 +403,7 @@ class Restorer(nn.Module):
                 # ts = torch.tensor([self.max_T // 20]).repeat(batch_size).to(self.device)
 
                 for t in range(1, self.max_T + 1):
-                # for t in range(self.max_T, 0, -1):
-                    import pdb
-                    pdb.set_trace()
+                # for t in range(self.max_T, 0, -1):\
                     ts = torch.full((batch_size,), t, device=self.device, dtype=torch.long)
                     lengths = torch.Tensor([x.shape[0] for x in xs]).long().to(self.device)
 
@@ -585,8 +583,8 @@ class Restorer(nn.Module):
                         # guidance = torch.exp(log_odds)
                         disc.zero_grad()
 
-                        # pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
-                        pred_probs_unorm = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
+                        pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
+                        # pred_probs_unorm = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
                         # pred_logits_before = probs_to_logits(pred_probs_unorm)
                         # pred_logits_before = rearrange(pred_logits_before, "(b h) c -> b h c", h=horizon)
 
