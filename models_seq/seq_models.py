@@ -564,8 +564,6 @@ class Restorer(nn.Module):
                             return mae / vocab_size
 
                         mae_b = []
-                        import pdb
-                        pdb.set_trace()
                         for b_idx in range(30):
                             mae_t = 0
                             for t_idx in range(lengths[b_idx]):
