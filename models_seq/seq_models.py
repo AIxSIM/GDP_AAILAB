@@ -544,42 +544,42 @@ class Restorer(nn.Module):
                         log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
                         guidance = torch.exp(log_odds)
 
-                        def sweep_one_position(x_in_b, guidance_b_t, b_idx, t_idx, vocab_size=1439, chunk=128):
-                            device = x_in_b.device
-                            T, V = x_in_b.shape
-                            assert V == vocab_size
-                            base = x_in_b.unsqueeze(0)
-                            mae = 0
-                            for s in range(0, vocab_size, chunk):
-                                e = min(s + chunk, vocab_size)
-                                n = e - s
-                                x = base.expand(n, T, V).clone()
-                                x[:, t_idx, :] = 0.0
-                                x[torch.arange(n, device=device), t_idx, torch.arange(s, e, device=device)] = 1.0
-                                out = disc.discriminate(x, lengths[b_idx].repeat(n), ts[b_idx].repeat(n), adj_matrix=None)
-                                out_P = torch.sigmoid(out)
-                                log_out_odds = torch.log(out_P) - torch.log1p(-out_P)
-                                guidance_out = torch.exp(log_out_odds)
-                                mae += torch.abs(guidance_out - guidance_b_t[s:e]).sum()
-                            return mae / vocab_size
-
-                        mae_b = []
-                        import pdb
-                        pdb.set_trace()
-                        for b_idx in range(30):
-                            mae_t = 0
-                            for t_idx in range(lengths[b_idx]):
-                                mae_t += sweep_one_position(x_onehot[b_idx], guidance[b_idx][t_idx], b_idx, t_idx, vocab_size=1439, chunk=256)
-                            mae_t = mae_t / lengths[b_idx]
-                            mae_b.append(mae_t)
-                        mae_b = torch.stack(mae_b)
-                        print(t, mae_b.mean(), mae_b.std())
-
-                        weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
-                        if t == 1:
-                            guidance = torch.exp(log_odds)
-                        else:
-                            guidance = torch.exp(weight[ts-1][:, None, None] ** 2 * log_odds)
+                        # def sweep_one_position(x_in_b, guidance_b_t, b_idx, t_idx, vocab_size=1439, chunk=128):
+                        #     device = x_in_b.device
+                        #     T, V = x_in_b.shape
+                        #     assert V == vocab_size
+                        #     base = x_in_b.unsqueeze(0)
+                        #     mae = 0
+                        #     for s in range(0, vocab_size, chunk):
+                        #         e = min(s + chunk, vocab_size)
+                        #         n = e - s
+                        #         x = base.expand(n, T, V).clone()
+                        #         x[:, t_idx, :] = 0.0
+                        #         x[torch.arange(n, device=device), t_idx, torch.arange(s, e, device=device)] = 1.0
+                        #         out = disc.discriminate(x, lengths[b_idx].repeat(n), ts[b_idx].repeat(n), adj_matrix=None)
+                        #         out_P = torch.sigmoid(out)
+                        #         log_out_odds = torch.log(out_P) - torch.log1p(-out_P)
+                        #         guidance_out = torch.exp(log_out_odds)
+                        #         mae += torch.abs(guidance_out - guidance_b_t[s:e]).sum()
+                        #     return mae / vocab_size
+                        #
+                        # mae_b = []
+                        # import pdb
+                        # pdb.set_trace()
+                        # for b_idx in range(30):
+                        #     mae_t = 0
+                        #     for t_idx in range(lengths[b_idx]):
+                        #         mae_t += sweep_one_position(x_onehot[b_idx], guidance[b_idx][t_idx], b_idx, t_idx, vocab_size=1439, chunk=256)
+                        #     mae_t = mae_t / lengths[b_idx]
+                        #     mae_b.append(mae_t)
+                        # mae_b = torch.stack(mae_b)
+                        # print(t, mae_b.mean(), mae_b.std())
+                        #
+                        # weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
+                        # if t == 1:
+                        #     guidance = torch.exp(log_odds)
+                        # else:
+                        #     guidance = torch.exp(weight[ts-1][:, None, None] ** 2 * log_odds)
                         # guidance = torch.exp(log_odds)
                         disc.zero_grad()
 
