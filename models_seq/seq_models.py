@@ -779,42 +779,6 @@ class Restorer(nn.Module):
 
                 pred_probs = EtXt * Et_minus_one_bar_hat_x0
 
-                ####### Guidance ########
-                # V = disc.n_vertex # + 2 # disc embedding vocab
-                # x_onehot = F.one_hot(xt, num_classes=V).float()
-                # x_in = x_onehot.detach().requires_grad_(True)
-                #
-                # with torch.enable_grad():
-                #     disc_logits = disc.discriminate(x_in, lengths, ts, adj_matrix=None)  # [B]
-                #     logP = torch.log(torch.sigmoid(disc_logits) + eps)  # [B]
-                #     g = torch.autograd.grad(logP.sum(), x_in, create_graph=False)[0]  # [B,H,V]
-                #
-                # v_cur = xt.unsqueeze(-1)  # [B,H,1]
-                # g_cur = torch.gather(g, dim=-1, index=v_cur)  # [B,H,1]
-                # logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
-                # P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
-                # log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
-                #
-                # weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
-                # if t == 1:
-                #     guidance = torch.exp(log_odds)
-                # else:
-                #     guidance = torch.exp(weight[ts - 1][:, None, None] ** (0.5) * log_odds)
-                # # guidance = torch.exp(guidance_scale * log_odds)
-                #
-                # sum_probs = torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
-                # pred_probs = pred_probs_unorm / sum_probs
-                # mask = (sum_probs == 1e-8)[:, 0]
-                # pred_probs[mask] = 1.0 / pred_probs.shape[1]
-                #
-                # # guidance = destroyer_new.Q[t, :, xt.view(-1)].T / (self.Q[t, :, xt.view(-1)].T + 1e-8)
-                # B, H = xt.shape
-                # V_pred = pred_probs.shape[-1]
-                # pred_probs = pred_probs.view(B, H, V_pred)
-                # pred_probs = pred_probs * guidance[..., :V_pred]
-                # pred_probs = pred_probs.view(B * H, V_pred)
-                #########################
-
                 sum_probs = torch.clamp(pred_probs.sum(1, keepdim=True), min=1e-8)
                 pred_probs = pred_probs / sum_probs
                 mask = (sum_probs == 1e-8)[:, 0]
