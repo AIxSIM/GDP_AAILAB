@@ -617,7 +617,7 @@ class Restorer(nn.Module):
                 kl = kl / math.log(2)
                 kl_before = kl_before / math.log(2)
                 print("="*50)
-                print((kl - kl_before).mean())
+                print(kl.mean(), kl_before.mean(), (kl - kl_before).mean())
                 kl_all += kl.detach().to("cpu").tolist()
                 kl_before_all += kl_before.detach().to("cpu").tolist()
                 torch.cuda.empty_cache()
