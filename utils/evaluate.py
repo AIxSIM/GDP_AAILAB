@@ -97,6 +97,7 @@ class Evaluator:
     
     def eval_all(self, disc=None):
         div_dict = self.calculate_divergences()
+        print(div_dict)
         nll_dict = self.calculate_nll(disc=disc)
         return dict(div_dict, **nll_dict)
 
