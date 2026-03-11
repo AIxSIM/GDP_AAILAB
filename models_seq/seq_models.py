@@ -380,7 +380,7 @@ class Restorer(nn.Module):
                 nlls[i + left] -= (prob[torch.arange(lengths[i] - 1), path[1:]] + 0.00001).log().sum()
         return nlls
 
-    def eval_nll_fix(self, real_paths, disc=None):
+    def eval_nll_fix(self, real_paths, disc=None, lookahead_paths=None):
         total = len(real_paths)
         # nlls = np.zeros(total)
         kl_all = []
@@ -393,6 +393,26 @@ class Restorer(nn.Module):
             disc.requires_grad_(False)
 
         with torch.no_grad():
+
+            ####### Lookahead Guidance ########
+            if lookahead_paths is not None:
+                lookahead_xs = [torch.tensor(path).to(self.device) for path in lookahead_paths]
+                lookahead_xs_padded = pad_sequence(lookahead_xs, batch_first=True, padding_value=0).long() # [N, h]
+
+                V = disc.n_vertex + 2  # disc embedding vocab
+                lookahead_n, lookahead_h = lookahead_xs_padded.shape
+
+                lookahead_lengths = torch.Tensor([x.shape[0] for x in lookahead_xs]).long().to(self.device)
+                lookahead_t_ones = torch.ones((lookahead_n,), device=self.device, dtype=torch.long)
+
+                lookahead_xs_in = F.one_hot(lookahead_xs_padded, num_classes=V).to(torch.float32)  # [N, h, V]
+
+                lookahead_disc_logits = disc.discriminate(lookahead_xs_in, lookahead_lengths, lookahead_t_ones, adj_matrix=None)  # [N,]
+
+                lookahead_weights = torch.exp(lookahead_disc_logits) # [N,]
+                lookahead_weights_flat = lookahead_weights.unsqueeze(0).expand(lookahead_h, lookahead_n)  # (h, N)
+            ##############################
+
             for k in range(n_batch):
                 left = k * batch_traj_num
                 right = min((k + 1) * batch_traj_num, total)
@@ -425,15 +445,7 @@ class Restorer(nn.Module):
                                                   ts.to(self.model_device))
                     x0_pred_probs = F.softmax(x0_pred_logits, dim=-1)
 
-                    # pred_probs_unorm = E_t @ x_t * \bar{E}_{t-1} @ \hat{x}_0  x_0 is logits while x_t is categorical
-                    # Et_minus_one_bar_hat_x0 = (
-                    #             self.matrices[ts - 1] @ x0_pred_probs.transpose(2, 1).to(self.des_device)).to(
-                    #     self.device)
-                    # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
-                    # pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
-
                     b, h, c = x0_pred_probs.shape
-                    n_samples = b
                     n = 1000
 
                     x0_pred_probs_flat = rearrange(x0_pred_probs, "b h c -> (b h) c")  # [(b*h), c]
@@ -447,17 +459,12 @@ class Restorer(nn.Module):
                                     self.matrices[ts - 1] @ x0_sample_probs.transpose(2, 1).to(self.des_device)).to(
                             self.device)
                     Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
-
-                    # Et_minus_one_bar_hat_x0 = self.matrices[t - 1, x0_sample.view(-1)]
-                    # Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "(b h n) d -> (b h) n d", b=n_samples, n=n)
-                    # Et_minus_one_bar_hat_x0 = Et_minus_one_bar_hat_x0.mean(dim=1)
                     pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                     pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                     pred_logits = probs_to_logits(pred_probs)
                     pred_logits = rearrange(pred_logits, "(b h) c -> b h c", h=horizon)
                     if t == 1:
-                        # kl = torch.stack([F.kl_div(pred_logits[u][:l] + eps, true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
                         kl_before = torch.stack([F.nll_loss(pred_logits[u][:l], xs[u][:l].long(), reduction="mean") for u, l in enumerate(lengths)])
                     elif t == self.max_T:
                         kl_before += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
@@ -472,7 +479,7 @@ class Restorer(nn.Module):
                         kl_before += torch.stack([F.kl_div(pred_logits[u][:l], true_probs[u][:l], reduction="batchmean") for u, l in enumerate(lengths)])
 
                     ####### Guidance ########
-                    if disc is not None:
+                    if (disc is not None) and (lookahead_paths is None):
                         x0_sample = x0_sample_flat.view(b, h, n)  # [b, h, n]
 
                         V = disc.n_vertex + 2  # disc embedding vocab
@@ -508,7 +515,6 @@ class Restorer(nn.Module):
                             disc_logits_flat[s:e] = logits_mb
 
                         disc_logits = disc_logits_flat.view(b, n)  # [b, n]
-                        # weights = torch.softmax(disc_logits, dim=1)
                         weights = torch.exp(disc_logits)
                         weights_flat = weights.unsqueeze(1).expand(b, h, n).reshape(b * h, n)  # (b*h, n)
 
@@ -519,7 +525,6 @@ class Restorer(nn.Module):
                             index=x0_sample_flat,  # (b*h, n)
                             src=weights_flat  # (b*h, n)
                         )
-                        # x0_sample_probs_weighted = (weighted_counts / float(n)).view(b, h, c)
                         x0_sample_probs_weighted = weighted_counts.view(b, h, c)
 
                         Et_minus_one_bar_hat_x0 = (
@@ -529,70 +534,30 @@ class Restorer(nn.Module):
 
                         pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
-                        # V = disc.n_vertex + 2  # disc embedding vocab
-                        # x_onehot = F.one_hot(xt_padded, num_classes=V).float()
-                        # x_in = x_onehot.clone().requires_grad_(True)
-                        #
-                        # with torch.enable_grad():
-                        #     disc_logits = disc.discriminate(x_in, lengths, ts, adj_matrix=None)  # [B]
-                        #     logP = torch.log(torch.sigmoid(disc_logits) + 1e-12)  # [B]
-                        #     g = torch.autograd.grad(logP.sum(), x_in, create_graph=False)[0]  # [B,H,V]
-                        # v_cur = xt_padded.unsqueeze(-1)  # [B,H,1]
-                        # g_cur = torch.gather(g, dim=-1, index=v_cur)  # [B,H,1]
-                        # logP_tilde = logP[:, None, None] + (g - g_cur)  # [B,H,V]
-                        # P_tilde_clamped = torch.exp(logP_tilde).clamp(min=1e-6, max=1 - 1e-6)
-                        # log_odds = torch.log(P_tilde_clamped) - torch.log1p(-P_tilde_clamped)
-                        # guidance = torch.exp(log_odds)
-                        #
-                        # def sweep_one_position(x_in_b, guidance_b_t, b_idx, t_idx, vocab_size=1439, chunk=128):
-                        #     device = x_in_b.device
-                        #     T, V = x_in_b.shape
-                        #     assert V == vocab_size
-                        #     base = x_in_b.unsqueeze(0)
-                        #     mae = 0
-                        #     for s in range(0, vocab_size, chunk):
-                        #         e = min(s + chunk, vocab_size)
-                        #         n = e - s
-                        #         x = base.expand(n, T, V).clone()
-                        #         x[:, t_idx, :] = 0.0
-                        #         x[torch.arange(n, device=device), t_idx, torch.arange(s, e, device=device)] = 1.0
-                        #         out = disc.discriminate(x, lengths[b_idx].repeat(n), ts[b_idx].repeat(n), adj_matrix=None)
-                        #         out_P = torch.sigmoid(out)
-                        #         log_out_odds = torch.log(out_P) - torch.log1p(-out_P)
-                        #         guidance_out = torch.exp(log_out_odds)
-                        #         mae += torch.abs(guidance_out - guidance_b_t[s:e]).sum()
-                        #     return mae / vocab_size
-                        #
-                        # mae_b = []
-                        # for b_idx in range(30):
-                        #     mae_t = 0
-                        #     for t_idx in range(lengths[b_idx]):
-                        #         mae_t += sweep_one_position(x_onehot[b_idx], guidance[b_idx][t_idx], b_idx, t_idx, vocab_size=1439, chunk=256)
-                        #     mae_t = mae_t / lengths[b_idx]
-                        #     mae_b.append(mae_t)
-                        # mae_b = torch.stack(mae_b)
-                        # print(t, mae_b.mean(), mae_b.std())
-                        #
-                        # weight = self.args.guidance_scale * self.destroyer.betas[1] / self.destroyer.betas
-                        # if t == 1:
-                        #     guidance = torch.exp(log_odds)
-                        # else:
-                        #     guidance = torch.exp(weight[ts-1][:, None, None] ** 2 * log_odds)
-                        # guidance = torch.exp(log_odds)
-                        # disc.zero_grad()
-                        #
-                        # pred_probs_unorm = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
-                        # # pred_probs_unorm = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)
-                        # # pred_logits_before = probs_to_logits(pred_probs_unorm)
-                        # # pred_logits_before = rearrange(pred_logits_before, "(b h) c -> b h c", h=horizon)
-                        #
-                        # B, H = xt_padded.shape
-                        # V_pred = pred_probs_unorm.shape[-1]
-                        # pred_probs_unorm = pred_probs_unorm.view(B, H, V_pred)
-                        # pred_probs_unorm = pred_probs_unorm * guidance[..., :V_pred]
-                        # pred_probs_unorm = pred_probs_unorm.view(B * H, V_pred)
-                        #
-                        # del g, logP, logP_tilde, P_tilde_clamped, disc_logits, x_in
+                    elif lookahead_paths is not None:
+                        lookahead_weights_flat = lookahead_weights.unsqueeze(0).expand(lookahead_h, lookahead_n)  # (h, N)
+
+                        lookahead_ts = torch.full((lookahead_n,), t, device=self.device, dtype=torch.long)
+                        lookahead_x_t_dist = self.destroyer.diffusion(lookahead_xs, lookahead_ts, ret_distr=True) # (N, h, c)
+
+                        import pdb
+                        pdb.set_trace()
+
+                        weighted_counts = torch.zeros((b * h, c), device=x0_sample_flat.device, dtype=torch.float32)
+
+                        weighted_counts.scatter_add_(
+                            dim=1,
+                            index=x0_sample_flat,  # (b*h, n)
+                            src=weights_flat  # (b*h, n)
+                        )
+                        x0_sample_probs_weighted = weighted_counts.view(b, h, c)
+
+                        Et_minus_one_bar_hat_x0 = (
+                                self.matrices[ts - 1] @ x0_sample_probs_weighted.transpose(2, 1).to(self.des_device)).to(
+                            self.device)
+                        Et_minus_one_bar_hat_x0 = rearrange(Et_minus_one_bar_hat_x0, "b c h -> (b h) c")
+
+                        pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                     pred_probs = pred_probs_unorm / torch.clamp(pred_probs_unorm.sum(1, keepdim=True), min=1e-8)
                     # pred_probs = pred_probs_unorm / pred_probs_unorm.sum(1, keepdim=True)

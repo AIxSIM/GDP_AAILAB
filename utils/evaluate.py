@@ -83,8 +83,8 @@ class Evaluator:
         
         return res_dict
     
-    def calculate_nll(self, disc=None):
-        nlls = self.model.eval_nll_fix(self.real_paths, disc=disc)
+    def calculate_nll(self, disc=None, lookahead_paths=None):
+        nlls = self.model.eval_nll_fix(self.real_paths, disc=disc, lookahead_paths=lookahead_paths)
         nll_min = np.min(nlls)
         nll_max = np.max(nlls)
         nll_avg = np.mean(nlls)

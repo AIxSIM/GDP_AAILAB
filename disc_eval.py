@@ -70,13 +70,16 @@ if __name__ == "__main__":
 
         # gen_paths: list of lists (len: eval_num, element: list of nodes)
         # real_paths: list of lists (len: eval_num, element: list of nodes)
-        real_paths = dataset.get_real_paths(args.eval_num)
+        # real_paths = dataset.get_real_paths(args.eval_num)
+        # for LiDAR
+        real_paths = dataset.get_real_paths(args.eval_num * 2)
+        real_paths, lookahead_paths = real_paths[:args.eval_num], real_paths[args.eval_num:]
 
         if args.only_nll:
             evaluator = Evaluator(real_paths, real_paths, model, n_vertex, dataset=dataset,
                                   name=join(args.res_path, f"DISC_{args.model_name}_{args.save_name}_pure_gen"),
                                   sim_time=args.sim_time)
-            res = evaluator.calculate_nll(disc=disc)
+            res = evaluator.calculate_nll(disc=disc, lookahead_paths=lookahead_paths)
             print(res)
         else:
             start_time = time.time()
