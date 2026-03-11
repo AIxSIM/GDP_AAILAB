@@ -569,7 +569,7 @@ class Restorer(nn.Module):
                         lookahead_disc_ratio = lookahead_ratio * lookahead_weights.unsqueeze(0) # (b, N)
                         lookahead_disc_ratio = lookahead_disc_ratio.unsqueeze(1).expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
 
-                        lookahead_flat = lookahead_xs_padded.transpose(1, 0)[:, :lookahead_h].expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
+                        lookahead_flat = lookahead_xs_padded.transpose(1, 0)[:, :h].expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
 
                         weighted_counts = torch.zeros((b * h, c), device=lookahead_xs_padded.device, dtype=torch.float32)
 
