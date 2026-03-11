@@ -543,10 +543,10 @@ class Restorer(nn.Module):
                             xt_padded = F.pad(xt_padded, (0, lookahead_h - horizon), value=0)  # (b, h)
 
                         # xt indices for gather: (1, b, h, 1) -> expand to (N, b, h, 1)
-                        xt_idx = xt_padded.unsqueeze(0).unsqueeze(-1).expand(lookahead_n, b, h, 1)  # (N, b, h, 1)
+                        xt_idx = xt_padded.unsqueeze(0).unsqueeze(-1).expand(lookahead_n, b, lookahead_h, 1)  # (N, b, h, 1)
 
                         # lookahead_x_t_dist: (N, 1, h, c) -> expand to (N, b, h, c)
-                        dist = lookahead_x_t_dist.unsqueeze(1).expand(lookahead_n, b, h, c)  # (N, b, h, c)
+                        dist = lookahead_x_t_dist.unsqueeze(1).expand(lookahead_n, b, lookahead_h, c)  # (N, b, h, c)
 
                         # token_probs[n, b, t] = q(x_t^(b)[t] | x_0^(n))
                         token_probs = torch.gather(dist, dim=-1, index=xt_idx).squeeze(-1)  # (N, b, h)
@@ -567,11 +567,11 @@ class Restorer(nn.Module):
 
                         lookahead_ratio = q_xt_given_x0 / denom
                         lookahead_disc_ratio = lookahead_ratio * lookahead_weights.unsqueeze(0) # (b, N)
-                        lookahead_disc_ratio = lookahead_disc_ratio.unsqueeze(1).expand(b, lookahead_h, lookahead_n).reshape(b * lookahead_h, lookahead_n)
+                        lookahead_disc_ratio = lookahead_disc_ratio.unsqueeze(1).expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
 
-                        lookahead_flat = lookahead_xs_padded.transpose(1, 0).expand(b, lookahead_h, lookahead_n).reshape(b * lookahead_h, lookahead_n)
+                        lookahead_flat = lookahead_xs_padded.transpose(1, 0).expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
 
-                        weighted_counts = torch.zeros((b * lookahead_h, c), device=lookahead_xs_padded.device, dtype=torch.float32)
+                        weighted_counts = torch.zeros((b * h, c), device=lookahead_xs_padded.device, dtype=torch.float32)
 
                         weighted_counts.scatter_add_(
                             dim=1,
