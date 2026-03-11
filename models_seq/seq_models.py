@@ -564,7 +564,7 @@ class Restorer(nn.Module):
                         q_xt_given_x0 = log_q_xt_given_x0.exp().transpose(0, 1)  # (b, N)
 
                         # 1/N * sum_n q(x_t^(b) | x_0^(n))  == mean over N
-                        denom = q_xt_given_x0.mean(dim=1, keepdim=True).clamp_min(1e-12)
+                        denom = q_xt_given_x0.sum(dim=1, keepdim=True).clamp_min(1e-12)
 
                         lookahead_ratio = q_xt_given_x0 / denom
                         lookahead_disc_ratio = lookahead_ratio * lookahead_weights.unsqueeze(0) # (b, N)
