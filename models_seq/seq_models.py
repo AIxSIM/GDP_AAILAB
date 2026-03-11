@@ -380,7 +380,7 @@ class Restorer(nn.Module):
                 nlls[i + left] -= (prob[torch.arange(lengths[i] - 1), path[1:]] + 0.00001).log().sum()
         return nlls
 
-    def eval_nll_fix(self, real_paths, disc=None, lookahead_paths=None):
+    def eval_nll_fix(self, real_paths, disc=None, lookahead_paths=[]):
         total = len(real_paths)
         # nlls = np.zeros(total)
         kl_all = []
@@ -410,7 +410,6 @@ class Restorer(nn.Module):
                 lookahead_disc_logits = disc.discriminate(lookahead_xs_in, lookahead_lengths, lookahead_t_ones, adj_matrix=None)  # [N,]
 
                 lookahead_weights = torch.exp(lookahead_disc_logits) # [N,]
-                lookahead_weights_flat = lookahead_weights.unsqueeze(0).expand(lookahead_h, lookahead_n)  # (h, N)
             ##############################
 
             for k in range(n_batch):
@@ -535,20 +534,49 @@ class Restorer(nn.Module):
                         pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                     elif lookahead_paths is not None:
-                        lookahead_weights_flat = lookahead_weights.unsqueeze(0).expand(lookahead_h, lookahead_n)  # (h, N)
+                        lookahead_weights  # ( N)
 
-                        lookahead_ts = torch.full((lookahead_n,), t, device=self.device, dtype=torch.long)
-                        lookahead_x_t_dist = self.destroyer.diffusion(lookahead_xs, lookahead_ts, ret_distr=True) # (N, h, c)
+                        lookahead_ts = torch.full((lookahead_n + b,), t, device=self.device, dtype=torch.long)
+                        lookahead_x_t_dist = self.destroyer.diffusion(lookahead_xs + xs, lookahead_ts, ret_distr=True)
+                        lookahead_x_t_dist = rearrange(lookahead_x_t_dist, "(b h) c -> b h c", h=max(lookahead_h, horizon))[:lookahead_n] # (N, h, c)
+                        if horizon < lookahead_h:
+                            xt_padded = F.pad(xt_padded, (0, lookahead_h - horizon), value=0)  # (b, h)
 
-                        import pdb
-                        pdb.set_trace()
+                        # xt indices for gather: (1, b, h, 1) -> expand to (N, b, h, 1)
+                        xt_idx = xt_padded.unsqueeze(0).unsqueeze(-1).expand(lookahead_n, b, h, 1)  # (N, b, h, 1)
 
-                        weighted_counts = torch.zeros((b * h, c), device=x0_sample_flat.device, dtype=torch.float32)
+                        # lookahead_x_t_dist: (N, 1, h, c) -> expand to (N, b, h, c)
+                        dist = lookahead_x_t_dist.unsqueeze(1).expand(lookahead_n, b, h, c)  # (N, b, h, c)
+
+                        # token_probs[n, b, t] = q(x_t^(b)[t] | x_0^(n))
+                        token_probs = torch.gather(dist, dim=-1, index=xt_idx).squeeze(-1)  # (N, b, h)
+                        token_log_probs = token_probs.clamp_min(1e-12).log()
+
+                        pad_token_id = 0
+                        valid_mask = (xt_padded != pad_token_id).unsqueeze(0)  # (1, b, h)
+                        token_log_probs = torch.where(valid_mask, token_log_probs, torch.zeros_like(token_log_probs),)
+
+                        # q(x_t^(b) | x_0^(n)) = product over sequence positions
+                        log_q_xt_given_x0 = token_log_probs.sum(dim=-1)  # (N, b)
+
+                        # transpose -> (b, N)
+                        q_xt_given_x0 = log_q_xt_given_x0.exp().transpose(0, 1)  # (b, N)
+
+                        # 1/N * sum_n q(x_t^(b) | x_0^(n))  == mean over N
+                        denom = q_xt_given_x0.mean(dim=1, keepdim=True).clamp_min(eps)
+
+                        lookahead_ratio = q_xt_given_x0 / denom
+                        lookahead_disc_ratio = lookahead_ratio * lookahead_weights.unsqueeze(0) # (b, N)
+                        lookahead_disc_ratio = lookahead_disc_ratio.unsqueeze(1).expand(b, lookahead_h, lookahead_n).reshape(b * lookahead_h, lookahead_n)
+
+                        lookahead_flat = lookahead_xs_padded.transpose(1, 0).expand(b, lookahead_h, lookahead_n).reshape(b * lookahead_h, lookahead_n)
+
+                        weighted_counts = torch.zeros((b * lookahead_h, c), device=lookahead_xs_padded.device, dtype=torch.float32)
 
                         weighted_counts.scatter_add_(
                             dim=1,
-                            index=x0_sample_flat,  # (b*h, n)
-                            src=weights_flat  # (b*h, n)
+                            index=lookahead_flat,  # (b*h, n)
+                            src=lookahead_disc_ratio  # (b*h, n)
                         )
                         x0_sample_probs_weighted = weighted_counts.view(b, h, c)
 
