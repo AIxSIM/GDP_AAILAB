@@ -563,10 +563,11 @@ class Restorer(nn.Module):
                         # transpose -> (b, N)
                         q_xt_given_x0 = log_q_xt_given_x0.exp().transpose(0, 1)  # (b, N)
 
-                        # 1/N * sum_n q(x_t^(b) | x_0^(n))  == mean over N
-                        denom = q_xt_given_x0.sum(dim=1, keepdim=True).clamp_min(1e-12)
-
+                        denom = torch.clamp(q_xt_given_x0.sum(1, keepdim=True), min=1e-8)
                         lookahead_ratio = q_xt_given_x0 / denom
+                        mask = (denom == 1e-8)[:, 0]
+                        lookahead_ratio[mask] = 1.0 / lookahead_ratio.shape[1]
+
                         lookahead_disc_ratio = lookahead_ratio * lookahead_weights.unsqueeze(0) # (b, N)
                         lookahead_disc_ratio = lookahead_disc_ratio.unsqueeze(1).expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
 
