@@ -534,7 +534,8 @@ class Restorer(nn.Module):
                         pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                     elif lookahead_paths is not None:
-                        lookahead_weights  # ( N)
+                        import pdb
+                        pdb.set_trace()
 
                         lookahead_ts = torch.full((lookahead_n + b,), t, device=self.device, dtype=torch.long)
                         lookahead_x_t_dist = self.destroyer.diffusion(lookahead_xs + xs, lookahead_ts, ret_distr=True)
