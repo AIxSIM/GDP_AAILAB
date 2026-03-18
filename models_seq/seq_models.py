@@ -574,6 +574,11 @@ class Restorer(nn.Module):
                             index=lookahead_flat,  # (b*h, n)
                             src=lookahead_disc_ratio  # (b*h, n)
                         )
+                        sum_probs = torch.clamp(weighted_counts.sum(1, keepdim=True), min=1e-8)
+                        weighted_counts = weighted_counts / sum_probs
+                        mask = (sum_probs == 1e-8)[:, 0]
+                        weighted_counts[mask] = 1.0 / weighted_counts.shape[1]
+
                         x0_sample_probs_weighted = weighted_counts.view(b, h, c)
 
                         Et_minus_one_bar_hat_x0 = (
