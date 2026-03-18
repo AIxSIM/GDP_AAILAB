@@ -380,7 +380,7 @@ class Restorer(nn.Module):
                 nlls[i + left] -= (prob[torch.arange(lengths[i] - 1), path[1:]] + 0.00001).log().sum()
         return nlls
 
-    def eval_nll_fix(self, real_paths, disc=None, lookahead_paths=[]):
+    def eval_nll_fix(self, real_paths, disc=None, lookahead_paths=None):
         total = len(real_paths)
         # nlls = np.zeros(total)
         kl_all = []
@@ -393,7 +393,7 @@ class Restorer(nn.Module):
             disc.requires_grad_(False)
 
         with torch.no_grad():
-
+            lookahead_paths = None
             ####### Lookahead Guidance ########
             if lookahead_paths is not None:
                 lookahead_xs = [torch.tensor(path).to(self.device) for path in lookahead_paths]
@@ -518,6 +518,9 @@ class Restorer(nn.Module):
                         weights_flat = weights.unsqueeze(1).expand(b, h, n).reshape(b * h, n)  # (b*h, n)
 
                         weighted_counts = torch.zeros((b * h, c), device=x0_sample_flat.device, dtype=torch.float32)
+
+                        import pdb
+                        pdb.set_trace()
 
                         weighted_counts.scatter_add_(
                             dim=1,
