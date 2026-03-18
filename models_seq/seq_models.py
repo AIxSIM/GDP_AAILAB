@@ -517,11 +517,14 @@ class Restorer(nn.Module):
                         weights = torch.exp(disc_logits)
                         weights_flat = weights.unsqueeze(1).expand(b, h, n).reshape(b * h, n)  # (b*h, n)
 
+                        time_idx = torch.arange(h, device=x0_sample_flat.device).unsqueeze(0)  # (1, h)
+                        valid_mask = time_idx < lengths.unsqueeze(1)  # (b, h)
+                        valid_mask_flat = valid_mask.reshape(-1, 1).expand(b * h, n)
+
+                        x0_sample_flat = x0_sample_flat.masked_fill(~valid_mask_flat, 0)
+                        weights_flat = weights_flat * valid_mask_flat.to(weights_flat.dtype)
+
                         weighted_counts = torch.zeros((b * h, c), device=x0_sample_flat.device, dtype=torch.float32)
-
-                        import pdb
-                        pdb.set_trace()
-
                         weighted_counts.scatter_add_(
                             dim=1,
                             index=x0_sample_flat,  # (b*h, n)
