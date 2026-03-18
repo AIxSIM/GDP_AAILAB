@@ -540,7 +540,6 @@ class Restorer(nn.Module):
                         lookahead_ts = torch.full((lookahead_n + b,), t, device=self.device, dtype=torch.long)
                         lookahead_x_t_dist = self.destroyer.diffusion(lookahead_xs + xs, lookahead_ts, ret_distr=True)
                         lookahead_x_t_dist = rearrange(lookahead_x_t_dist, "(b h) c -> b h c", h=max(lookahead_h, horizon))[:lookahead_n] # (N, h, c)
-                        lookahead_x_t_dist = lookahead_x_t_dist * 100
                         if horizon < lookahead_h:
                             xt_padded = F.pad(xt_padded, (0, lookahead_h - horizon), value=0)  # (b, h)
 
@@ -567,7 +566,14 @@ class Restorer(nn.Module):
                         lookahead_disc_ratio = lookahead_ratio * lookahead_weights.unsqueeze(0) # (b, N)
                         lookahead_disc_ratio = lookahead_disc_ratio.unsqueeze(1).expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
 
-                        lookahead_flat = lookahead_xs_padded[:, :h].transpose(1, 0).unsqueeze(0).expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
+                        lookahead_tokens = lookahead_xs_padded[:, :h]
+                        time_idx = torch.arange(h, device=lookahead_tokens.device).unsqueeze(0)  # (1, h)
+                        valid_mask = time_idx < lookahead_lengths.unsqueeze(1)  # (b, h)
+                        lookahead_tokens = lookahead_tokens.masked_fill(~valid_mask, 0)
+
+                        lookahead_flat = lookahead_tokens.transpose(1, 0).unsqueeze(0).expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
+                        valid_mask_flat = valid_mask.transpose(1, 0).unsqueeze(0).expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
+                        lookahead_disc_ratio = lookahead_disc_ratio * valid_mask_flat.to(lookahead_disc_ratio.dtype)
 
                         weighted_counts = torch.zeros((b * h, c), device=lookahead_xs_padded.device, dtype=torch.float32)
                         weighted_counts.scatter_add_(
