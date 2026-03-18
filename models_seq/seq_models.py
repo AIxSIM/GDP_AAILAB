@@ -540,6 +540,7 @@ class Restorer(nn.Module):
                         lookahead_ts = torch.full((lookahead_n + b,), t, device=self.device, dtype=torch.long)
                         lookahead_x_t_dist = self.destroyer.diffusion(lookahead_xs + xs, lookahead_ts, ret_distr=True)
                         lookahead_x_t_dist = rearrange(lookahead_x_t_dist, "(b h) c -> b h c", h=max(lookahead_h, horizon))[:lookahead_n] # (N, h, c)
+                        lookahead_x_t_dist = lookahead_x_t_dist * 100
                         if horizon < lookahead_h:
                             xt_padded = F.pad(xt_padded, (0, lookahead_h - horizon), value=0)  # (b, h)
 
