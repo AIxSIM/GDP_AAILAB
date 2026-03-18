@@ -38,6 +38,7 @@ if __name__ == "__main__":
         # elif args.sim_time == False:
         #     dataset = TrajFastDataset(args.d_name, [date], args.path, device, is_pretrain=True)
         dataset = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True, shuffle=False, index=args.shortest_new_idx, shortest_data_path=args.shortest_data_path)
+        dataset_gen = TrajFastShortestDataset(args.d_name, [date], args.path, device, is_pretrain=True, shuffle=False, index=args.shortest_new_idx, shortest_data_path=args.shortest_data_path, gen_path=args.train_org_gen_path)
 
         n_vertex = dataset.n_vertex
         print(f"vertex: {n_vertex}")
@@ -72,8 +73,8 @@ if __name__ == "__main__":
         # real_paths: list of lists (len: eval_num, element: list of nodes)
         # real_paths = dataset.get_real_paths(args.eval_num)
         # for LiDAR
-        real_paths = dataset.get_real_paths(args.eval_num * 2)
-        real_paths, lookahead_paths = real_paths[:args.eval_num], real_paths[args.eval_num:]
+        real_paths = dataset.get_real_paths(args.eval_num)
+        lookahead_paths = dataset_gen.get_real_paths(args.eval_num)
 
         if args.only_nll:
             evaluator = Evaluator(real_paths, real_paths, model, n_vertex, dataset=dataset,
