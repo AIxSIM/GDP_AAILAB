@@ -540,9 +540,6 @@ class Restorer(nn.Module):
                         pred_probs_unorm = EtXt * Et_minus_one_bar_hat_x0
 
                     elif lookahead_paths is not None:
-                        import pdb
-                        pdb.set_trace()
-
                         lookahead_ts = torch.full((lookahead_n + b,), t, device=self.device, dtype=torch.long)
                         lookahead_x_t_dist = self.destroyer.diffusion(lookahead_xs + xs, lookahead_ts, ret_distr=True)
                         lookahead_x_t_dist = rearrange(lookahead_x_t_dist, "(b h) c -> b h c", h=max(lookahead_h, horizon))[:lookahead_n] # (N, h, c)
@@ -580,9 +577,6 @@ class Restorer(nn.Module):
                         lookahead_flat = lookahead_tokens.transpose(1, 0).unsqueeze(0).expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
                         valid_mask_flat = valid_mask.transpose(1, 0).unsqueeze(0).expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
                         lookahead_disc_ratio = lookahead_disc_ratio * valid_mask_flat.to(lookahead_disc_ratio.dtype)
-
-                        import pdb
-                        pdb.set_trace()
 
                         weighted_counts = torch.zeros((b * h, c), device=lookahead_xs_padded.device, dtype=torch.float32)
                         weighted_counts.scatter_add_(
