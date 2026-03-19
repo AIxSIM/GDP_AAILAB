@@ -393,7 +393,6 @@ class Restorer(nn.Module):
             disc.requires_grad_(False)
 
         with torch.no_grad():
-            lookahead_paths = None
             ####### Lookahead Guidance ########
             if lookahead_paths is not None:
                 lookahead_xs = [torch.tensor(path).to(self.device) for path in lookahead_paths]
@@ -580,6 +579,9 @@ class Restorer(nn.Module):
                         lookahead_flat = lookahead_tokens.transpose(1, 0).unsqueeze(0).expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
                         valid_mask_flat = valid_mask.transpose(1, 0).unsqueeze(0).expand(b, h, lookahead_n).reshape(b * h, lookahead_n)
                         lookahead_disc_ratio = lookahead_disc_ratio * valid_mask_flat.to(lookahead_disc_ratio.dtype)
+
+                        import pdb
+                        pdb.set_trace()
 
                         weighted_counts = torch.zeros((b * h, c), device=lookahead_xs_padded.device, dtype=torch.float32)
                         weighted_counts.scatter_add_(
