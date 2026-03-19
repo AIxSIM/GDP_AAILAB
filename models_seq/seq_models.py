@@ -393,6 +393,7 @@ class Restorer(nn.Module):
             disc.requires_grad_(False)
 
         with torch.no_grad():
+            lookahead_paths = None
             ####### Lookahead Guidance ########
             if lookahead_paths is not None:
                 lookahead_xs = [torch.tensor(path).to(self.device) for path in lookahead_paths]
@@ -527,7 +528,7 @@ class Restorer(nn.Module):
                         weighted_counts.scatter_add_(
                             dim=1,
                             index=x0_sample_flat,  # (b*h, n)
-                            src=weights_flat  # (b*h, n)
+                            src=weights_flat * self.args.guidance_scale  # (b*h, n)
                         )
                         x0_sample_probs_weighted = weighted_counts.view(b, h, c)
 
