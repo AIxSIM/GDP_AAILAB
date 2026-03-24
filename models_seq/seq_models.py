@@ -166,12 +166,16 @@ class Restorer(nn.Module):
         x0_pred_logits = self.eps_model(xt_padded, lengths, ts)
         return x0_pred_logits
     
-    def sample(self, n_samples: int, batch_traj_num=200, real_paths=None, bool_prefix=False, ret_org=False):
+    def sample(self, n_samples: int, batch_traj_num=200, real_paths=None, bool_prefix=False, ret_org=False, fix_length=None):
         assert hasattr(self, "gmm")
-        if real_paths is not None:
+        if fix_length is not None:
             lengths = np.array([len(x) for x in real_paths])
+            lengths = np.ones(len(lengths)) * lengths.max()
         else:
-            lengths = self.gmm.sample(n_samples)[0].reshape(-1).astype(int)
+            if real_paths is not None:
+                lengths = np.array([len(x) for x in real_paths])
+            else:
+                lengths = self.gmm.sample(n_samples)[0].reshape(-1).astype(int)
         lengths = np.sort(lengths[lengths > 0])
         lengths = torch.Tensor(lengths).long().to(self.device)
         # batch_traj_num = 200
